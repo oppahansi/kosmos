@@ -5,13 +5,15 @@ import { api } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
 import { useActiveGrabCount } from "../../hooks/useActiveGrabCount";
 import { useApi } from "../../hooks/useApi";
+import { useLibraryChanges } from "../../hooks/useLibraryChanges";
 import { formatTb } from "../../utils/formatBytes";
 import { navItems } from "./navItems";
 
-/** Library stats change from several places (Jellyfin sync, manual add, import) rather than one
- * single event stream worth subscribing to — a light periodic refresh keeps the sidebar's counts
- * from going stale for the whole session without needing every write path to announce itself. */
-const LIBRARY_STATS_REFRESH_MS = 30_000;
+const CHANGE_CONTENT_TYPES = ["movie", "show", "anime"];
+
+/** A LibraryChangeEvent (see useLibraryChanges) reloads stats immediately in the common case; this
+ * poll is now only a safety net for a dropped/missed SSE connection, hence the long interval. */
+const LIBRARY_STATS_REFRESH_MS = 120_000;
 
 /** Collections sidebar — no smart-collections feature exists yet (see LibraryResource.stats), just these real content types, each routing to LibraryPage filtered by `?type=`. */
 const COLLECTIONS: { label: string; type: "movie" | "show" | "anime" | "review"; tint: string }[] = [
@@ -31,6 +33,8 @@ export function Sidebar() {
   const { data: requests } = useApi(() => api.listRequests(), [user?.id]);
   const { data: stats, reload: reloadStats } = useApi(() => api.libraryStats(), []);
   const activeJobCount = useActiveGrabCount();
+
+  useLibraryChanges(CHANGE_CONTENT_TYPES, () => reloadStats());
 
   useEffect(() => {
     const id = window.setInterval(reloadStats, LIBRARY_STATS_REFRESH_MS);

@@ -2,9 +2,12 @@ package de.oppahansi.kosmos.library;
 
 import de.oppahansi.kosmos.jellyfin.UnclassifiedShow;
 import de.oppahansi.kosmos.library.dto.CreateLibraryRootFolderRequest;
+import de.oppahansi.kosmos.library.dto.LibraryChangeEvent;
 import de.oppahansi.kosmos.library.dto.LibraryRootFolderResponse;
 import de.oppahansi.kosmos.library.dto.LibraryStatsResponse;
 import de.oppahansi.kosmos.media.MediaItem;
+import io.smallrye.common.annotation.Blocking;
+import io.smallrye.mutiny.Multi;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -18,6 +21,7 @@ import jakarta.ws.rs.core.Response;
 import java.io.File;
 import java.util.List;
 import java.util.UUID;
+import org.jboss.resteasy.reactive.RestStreamElementType;
 
 @Path("/library")
 @Produces(MediaType.APPLICATION_JSON)
@@ -25,6 +29,7 @@ import java.util.UUID;
 public class LibraryResource {
 
   @Inject LibraryRootFolderService rootFolderService;
+  @Inject LibraryChangeBroadcaster libraryChangeBroadcaster;
 
   @GET
   @Path("/stats")
@@ -41,6 +46,22 @@ public class LibraryResource {
         rootFolderService.getDefault().map(f -> totalSpaceOrNull(f.path)).orElse(null);
     return new LibraryStatsResponse(
         movieCount, seriesCount, animeCount, needsReviewCount, usedBytes, totalBytes);
+  }
+
+  /**
+   * Live "a title was created or updated" pointer stream — SSE, not polling; see {@link
+   * LibraryChangeBroadcaster}'s own doc. {@code @Blocking}: same reasoning as {@code
+   * JobResource#progress} — {@link de.oppahansi.kosmos.auth.SessionFilter} does a blocking
+   * Hibernate lookup ahead of every request, which needs a worker thread, not the I/O thread a
+   * {@code Multi}-returning endpoint runs on by default.
+   */
+  @GET
+  @Path("/changes")
+  @Produces(MediaType.SERVER_SENT_EVENTS)
+  @RestStreamElementType(MediaType.APPLICATION_JSON)
+  @Blocking
+  public Multi<LibraryChangeEvent> changes() {
+    return libraryChangeBroadcaster.subscribe();
   }
 
   @GET

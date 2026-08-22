@@ -1,6 +1,7 @@
 package de.oppahansi.kosmos.library;
 
 import de.oppahansi.kosmos.activity.HistoryEventService;
+import de.oppahansi.kosmos.library.dto.LibraryChangeEvent;
 import de.oppahansi.kosmos.media.MediaItem;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -17,13 +18,16 @@ import java.time.Instant;
  * Deliberately does not fire a {@code NotificationEvent} — a bulk sync run linking hundreds of
  * files would spam every configured notifier — but does record a real {@link
  * de.oppahansi.kosmos.activity.HistoryEvent} directly via {@link HistoryEventService}, so a
- * sync-imported file still shows up in Activity history, just silently.
+ * sync-imported file still shows up in Activity history, just silently. Does publish a {@link
+ * LibraryChangeEvent} though — see {@link LibraryChangeBroadcaster}'s own doc for why that's a
+ * genuinely separate concern from notifier spam, not the same one this class already opted out of.
  */
 @ApplicationScoped
 public class LibraryFileLinkService {
 
   @Inject ProbeService probeService;
   @Inject HistoryEventService historyEventService;
+  @Inject LibraryChangeBroadcaster libraryChangeBroadcaster;
 
   @Transactional
   public LibraryFile link(MediaItem mediaItem, String path, String matchMethod) {
@@ -45,6 +49,7 @@ public class LibraryFileLinkService {
         "IMPORTED",
         mediaItem.title + " matched from " + matchMethod.toLowerCase().replace('_', ' ') + ".",
         file.sizeBytes);
+    libraryChangeBroadcaster.publish(new LibraryChangeEvent(mediaItem.contentType, mediaItem.id));
     return file;
   }
 

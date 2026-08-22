@@ -23,7 +23,12 @@ import { posterUrl } from "../api/tmdbImage";
 import { MediaCard, STATUS_DOT_CLASS, STATUS_LABEL, type MediaStatus } from "../components/MediaCard";
 import { NeedsReviewPanel } from "../components/NeedsReviewPanel";
 import { useApi } from "../hooks/useApi";
+import { useLibraryChanges } from "../hooks/useLibraryChanges";
 import { tonalGradient } from "../utils/tonalGradient";
+
+/** A batch this size or smaller is patched in id-by-id; anything larger (a real sync run) just
+ * triggers one full reload instead of hammering the API with that many individual fetches. */
+const LIVE_PATCH_BATCH_LIMIT = 10;
 
 type View = "grid" | "list";
 type SortKey = "added" | "title" | "year" | "quality";
@@ -42,11 +47,35 @@ interface LibrarySourceItem {
 
 const KIND_CONFIG: Record<
   LibraryKind,
-  { title: string; noun: string; basePath: string; fetch: () => Promise<LibrarySourceItem[]> }
+  {
+    title: string;
+    noun: string;
+    basePath: string;
+    fetch: () => Promise<LibrarySourceItem[]>;
+    fetchOne: (id: string) => Promise<LibrarySourceItem>;
+  }
 > = {
-  movie: { title: "Movies", noun: "movies", basePath: "/movies", fetch: () => api.listMovies() as Promise<Movie[]> },
-  show: { title: "Series", noun: "series", basePath: "/shows", fetch: () => api.listShows() as Promise<Show[]> },
-  anime: { title: "Anime", noun: "anime", basePath: "/anime", fetch: () => api.listAnime() as Promise<Anime[]> },
+  movie: {
+    title: "Movies",
+    noun: "movies",
+    basePath: "/movies",
+    fetch: () => api.listMovies() as Promise<Movie[]>,
+    fetchOne: (id) => api.getMovie(id),
+  },
+  show: {
+    title: "Series",
+    noun: "series",
+    basePath: "/shows",
+    fetch: () => api.listShows() as Promise<Show[]>,
+    fetchOne: (id) => api.getShow(id),
+  },
+  anime: {
+    title: "Anime",
+    noun: "anime",
+    basePath: "/anime",
+    fetch: () => api.listAnime() as Promise<Anime[]>,
+    fetchOne: (id) => api.getAnime(id),
+  },
 };
 
 /**
@@ -266,9 +295,36 @@ export default function LibraryPage() {
   // Every hook below still runs on the Needs Review tab (same mounted component, hook order must
   // stay constant across a query-param-only navigation) — the fetch itself is just skipped since
   // NeedsReviewPanel owns its own data.
-  const { data: rawItems, loading, error: loadError } = useApi(
+  const { data: rawItems, loading, error: loadError, setData: setRawItems, reload } = useApi(
     () => (isReview ? Promise.resolve([]) : config.fetch()),
     [kind, isReview],
+  );
+
+  // Live updates from sync jobs/imports (see LibraryChangeBroadcaster) — a small batch is patched
+  // in id-by-id via setRawItems, matching this codebase's "patch the one row a mutation touched"
+  // convention elsewhere rather than reloading the whole list; a real sync's larger burst just
+  // reloads once instead.
+  useLibraryChanges(
+    isReview ? [] : [kind],
+    async (ids) => {
+      if (ids.length > LIVE_PATCH_BATCH_LIMIT) {
+        reload();
+        return;
+      }
+      const fetched = await Promise.all(
+        ids.map((id) => config.fetchOne(id).catch(() => null)),
+      );
+      setRawItems((current) => {
+        const next = [...(current ?? [])];
+        for (const item of fetched) {
+          if (!item) continue;
+          const index = next.findIndex((existing) => existing.id === item.id);
+          if (index === -1) next.push(item);
+          else next[index] = item;
+        }
+        return next;
+      });
+    },
   );
   const [view, setView] = useState<View>("grid");
   const [filterText, setFilterText] = useState("");

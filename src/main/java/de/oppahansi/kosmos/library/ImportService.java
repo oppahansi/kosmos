@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.library;
 
+import de.oppahansi.kosmos.library.dto.LibraryChangeEvent;
 import de.oppahansi.kosmos.library.naming.NamingContext;
 import de.oppahansi.kosmos.library.naming.NamingSettings;
 import de.oppahansi.kosmos.library.naming.NamingSettingsService;
@@ -38,6 +39,7 @@ public class ImportService {
   @Inject ExternalIdLinkService externalIdLinkService;
   @Inject Event<NotificationEvent> notificationEvent;
   @Inject NamingSettingsService namingSettingsService;
+  @Inject LibraryChangeBroadcaster libraryChangeBroadcaster;
 
   private final NamingTemplateEngine namingTemplateEngine = new NamingTemplateEngine();
 
@@ -78,6 +80,7 @@ public class ImportService {
             title,
             title + " has been imported and is ready to watch.",
             file.sizeBytes));
+    libraryChangeBroadcaster.publish(new LibraryChangeEvent(mediaItem.contentType, mediaItem.id));
     return file;
   }
 

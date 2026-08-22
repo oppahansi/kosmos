@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useApi } from "./useApi";
+import { useLibraryChanges } from "./useLibraryChanges";
 import type {
   Anime,
   AnimeDetail,
@@ -23,6 +24,12 @@ const MEDIA_TYPE_FOR_KIND: Record<MediaKind, "movie" | "tv" | "anime"> = {
   movie: "movie",
   show: "tv",
   anime: "anime",
+};
+
+/** The episode-level content type {@code LibraryChangeEvent} uses for a given show/anime kind. */
+const EPISODE_CONTENT_TYPE: Partial<Record<MediaKind, string>> = {
+  show: "episode",
+  anime: "anime_episode",
 };
 
 /** {@code AddableItem.mediaType}/{@code CreateXRequest.mediaType} spelling for a given {@link MediaKind}. */
@@ -114,6 +121,27 @@ export function useMediaDetail(kind: MediaKind) {
     loading: previewLoading,
     error: previewError,
   } = useApi(() => (externalId ? fetchPreview(kind, externalId) : Promise.resolve(null)), [kind, externalId]);
+
+  // Live updates (see LibraryChangeBroadcaster): this title's own kind always reloads it; the
+  // episode-level content type only reloads when a changed episode id actually belongs to the
+  // season/episode tree already loaded here — an event only carries an id, not "which show," so
+  // this is what tells an unrelated show's newly-imported episode apart from this one's.
+  const episodeContentType = EPISODE_CONTENT_TYPE[kind];
+  useLibraryChanges(
+    episodeContentType ? [kind, episodeContentType] : [kind],
+    (ids) => {
+      if (!id) return;
+      if (ids.includes(id)) {
+        reload();
+        if (kind === "movie") reloadLibraryFiles();
+        return;
+      }
+      const seasons = (ownedMedia as ShowDetail | AnimeDetail | null)?.seasons;
+      if (seasons?.some((season) => season.episodes.some((episode) => ids.includes(episode.id)))) {
+        reload();
+      }
+    },
+  );
 
   async function setQualityProfile(qualityProfileId: string | null) {
     if (!id) return;
