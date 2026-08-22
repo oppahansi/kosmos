@@ -8,6 +8,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.ForbiddenException;
+import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -66,6 +67,16 @@ public class LibraryFileResource {
     return libraryFileService
         .rematch(id, request.mediaItemId())
         .map(file -> Response.ok(LibraryFileResponse.from(file)).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
+  /** What this file would be renamed to under the naming settings as configured right now. */
+  @GET
+  @Path("/{id}/preview-rename")
+  public Response previewRename(@PathParam("id") UUID id) {
+    return libraryFileService
+        .previewRename(id)
+        .map(result -> Response.ok(result).build())
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 }

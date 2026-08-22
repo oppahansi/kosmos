@@ -1,6 +1,8 @@
 package de.oppahansi.kosmos.media;
 
 import de.oppahansi.kosmos.auth.CurrentUser;
+import de.oppahansi.kosmos.library.RefreshScanService;
+import de.oppahansi.kosmos.library.dto.RefreshScanResult;
 import de.oppahansi.kosmos.media.dto.AnimeDetailResponse;
 import de.oppahansi.kosmos.media.dto.AnimeResponse;
 import de.oppahansi.kosmos.media.dto.AnimeSeasonResponse;
@@ -34,6 +36,7 @@ public class AnimeResource {
 
   @Inject AnimeService animeService;
   @Inject MediaItemDeletionService deletionService;
+  @Inject RefreshScanService refreshScanService;
   @Inject CurrentUser currentUser;
   @Inject MediaAvailabilityService mediaAvailabilityService;
 
@@ -96,6 +99,19 @@ public class AnimeResource {
             .map(anime -> Response.ok(toDetail(anime)).build())
             .orElse(Response.status(Response.Status.NOT_FOUND).build())
         : Response.status(Response.Status.NOT_FOUND).build();
+  }
+
+  /**
+   * Re-fetches AniList metadata (poster/overview). No folder scan — see the roadmap's own scope
+   * note on why.
+   */
+  @POST
+  @Path("/{id}/refresh")
+  public RefreshScanResult refresh(@PathParam("id") UUID id) {
+    if (!currentUser.isAdmin()) {
+      throw new ForbiddenException("Admin only");
+    }
+    return refreshScanService.refreshAnime(id);
   }
 
   /**

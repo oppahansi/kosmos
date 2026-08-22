@@ -2,7 +2,9 @@ package de.oppahansi.kosmos.media;
 
 import de.oppahansi.kosmos.auth.CurrentUser;
 import de.oppahansi.kosmos.library.LibraryFile;
+import de.oppahansi.kosmos.library.RefreshScanService;
 import de.oppahansi.kosmos.library.dto.LibraryFileResponse;
+import de.oppahansi.kosmos.library.dto.RefreshScanResult;
 import de.oppahansi.kosmos.media.dto.CreateMovieRequest;
 import de.oppahansi.kosmos.media.dto.MovieResponse;
 import de.oppahansi.kosmos.media.dto.UpdateMinimumAvailabilityRequest;
@@ -31,6 +33,7 @@ public class MediaResource {
 
   @Inject MovieService movieService;
   @Inject MediaItemDeletionService deletionService;
+  @Inject RefreshScanService refreshScanService;
   @Inject CurrentUser currentUser;
 
   @GET
@@ -130,6 +133,14 @@ public class MediaResource {
     return deletionService.deleteMovie(id, deleteFiles)
         ? Response.noContent().build()
         : Response.status(Response.Status.NOT_FOUND).build();
+  }
+
+  /** Re-fetches TMDB metadata and re-scans this movie's own folder for a file not yet known. */
+  @POST
+  @Path("/{id}/refresh")
+  public RefreshScanResult refresh(@PathParam("id") UUID id) {
+    requireAdmin();
+    return refreshScanService.refreshMovie(id);
   }
 
   private void requireAdmin() {

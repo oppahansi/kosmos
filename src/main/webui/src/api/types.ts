@@ -497,6 +497,17 @@ export interface CommitImportResult {
   libraryFileId: string | null;
 }
 
+export interface RefreshScanResult {
+  metadataRefreshed: boolean;
+  filesLinked: number;
+}
+
+export interface PreviewRenameResult {
+  currentPath: string;
+  targetPath: string;
+  changed: boolean;
+}
+
 export type NotificationEventType = "GRAB" | "IMPORT" | "BLOCKLIST";
 
 export interface Notifier {

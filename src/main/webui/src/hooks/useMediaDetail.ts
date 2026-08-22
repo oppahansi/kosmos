@@ -8,6 +8,7 @@ import type {
   MediaPreview,
   MinimumAvailability,
   Movie,
+  RefreshScanResult,
   SeriesMonitoringMode,
   Show,
   ShowDetail,
@@ -138,6 +139,15 @@ export function useMediaDetail(kind: MediaKind) {
     reload();
   }
 
+  async function refreshMedia(): Promise<RefreshScanResult | null> {
+    if (!id) return null;
+    const result =
+      kind === "movie" ? await api.refreshMovie(id) : kind === "show" ? await api.refreshShow(id) : await api.refreshAnime(id);
+    reload();
+    if (kind === "movie") reloadLibraryFiles();
+    return result;
+  }
+
   return {
     owned,
     ownedMedia,
@@ -155,5 +165,6 @@ export function useMediaDetail(kind: MediaKind) {
     setSeasonFolderEnabled,
     setEpisodeMonitored,
     setSeriesMonitoring,
+    refreshMedia,
   };
 }

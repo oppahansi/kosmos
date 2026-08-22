@@ -1,6 +1,7 @@
 package de.oppahansi.kosmos.library;
 
 import de.oppahansi.kosmos.activity.HistoryEventService;
+import de.oppahansi.kosmos.library.dto.PreviewRenameResult;
 import de.oppahansi.kosmos.media.MediaItem;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -13,12 +14,16 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-/** Manage Files: deleting or re-matching one already-imported {@link LibraryFile}. */
+/**
+ * Manage Files: deleting, re-matching, or previewing a rename for one already-imported {@link
+ * LibraryFile}.
+ */
 @ApplicationScoped
 public class LibraryFileService {
 
   @Inject EntityManager em;
   @Inject HistoryEventService historyEventService;
+  @Inject ImportService importService;
 
   /**
    * {@code deleteFromDisk=true} also removes the file itself (best-effort). Entity-hydration-free
@@ -80,6 +85,22 @@ public class LibraryFileService {
     f.matchPinned = true;
     f.matchedAt = Instant.now();
     return Optional.of(f);
+  }
+
+  /**
+   * What this file would be renamed to under the naming settings as configured right now — read
+   * requiring no mutation, so unlike {@link #delete}/{@link #rematch} this one loads the {@link
+   * LibraryFile} entity normally (no bulk operation follows it in the same transaction, so none of
+   * the entity-hydration caveats those two carry apply here).
+   */
+  public Optional<PreviewRenameResult> previewRename(UUID fileId) {
+    return LibraryFile.<LibraryFile>findByIdOptional(fileId)
+        .map(
+            file -> {
+              String targetPath =
+                  importService.previewTargetPath(file.mediaItem, file.path).toString();
+              return new PreviewRenameResult(file.path, targetPath, !targetPath.equals(file.path));
+            });
   }
 
   /** Best-effort — a missing/permission-denied file must never abort the rest of the delete. */

@@ -1,7 +1,12 @@
-import { PushPinIcon as PushPin, TrashIcon as Trash, XIcon as X } from "@phosphor-icons/react";
+import {
+  ArrowsLeftRightIcon as ArrowsLeftRight,
+  PushPinIcon as PushPin,
+  TrashIcon as Trash,
+  XIcon as X,
+} from "@phosphor-icons/react";
 import { useState } from "react";
 import { api } from "../../api/client";
-import type { LibraryFile } from "../../api/types";
+import type { LibraryFile, PreviewRenameResult } from "../../api/types";
 import { formatBytes } from "../../utils/formatBytes";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { Toggle } from "../Toggle";
@@ -22,12 +27,26 @@ export function ManageFilesDialog({
 }) {
   const [deleteTarget, setDeleteTarget] = useState<LibraryFile | null>(null);
   const [deleteFromDisk, setDeleteFromDisk] = useState(false);
+  const [previews, setPreviews] = useState<Record<string, PreviewRenameResult>>({});
 
   async function confirmDelete() {
     if (!deleteTarget) return;
     await api.deleteLibraryFile(deleteTarget.id, deleteFromDisk);
     setDeleteTarget(null);
     onChanged();
+  }
+
+  async function togglePreviewRename(file: LibraryFile) {
+    if (previews[file.id]) {
+      setPreviews((p) => {
+        const next = { ...p };
+        delete next[file.id];
+        return next;
+      });
+      return;
+    }
+    const result = await api.previewRenameLibraryFile(file.id);
+    setPreviews((p) => ({ ...p, [file.id]: result }));
   }
 
   return (
@@ -74,6 +93,16 @@ export function ManageFilesDialog({
                   type="button"
                   className="btn-icon"
                   style={{ width: 26, height: 26, flex: "none" }}
+                  aria-label="Preview rename"
+                  title="Preview rename"
+                  onClick={() => togglePreviewRename(file)}
+                >
+                  <ArrowsLeftRight size={13} />
+                </button>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  style={{ width: 26, height: 26, flex: "none" }}
                   aria-label="Delete file"
                   onClick={() => {
                     setDeleteFromDisk(false);
@@ -88,6 +117,27 @@ export function ManageFilesDialog({
                 {file.container ? ` · ${file.container}` : ""}
                 {file.videoCodec ? ` · ${file.videoCodec}` : ""}
               </div>
+              {previews[file.id] && (
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    background: "var(--surface-2, rgba(127,127,127,0.08))",
+                    borderRadius: 6,
+                    padding: 8,
+                    wordBreak: "break-all",
+                  }}
+                >
+                  {previews[file.id].changed ? (
+                    <>
+                      <div className="text-faint">{previews[file.id].currentPath}</div>
+                      <div style={{ marginTop: 3 }}>{previews[file.id].targetPath}</div>
+                    </>
+                  ) : (
+                    <div className="text-faint">Already named correctly.</div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
           {files.length === 0 && <p className="text-muted">No files matched to this title.</p>}

@@ -45,9 +45,11 @@ import type {
   NotificationEventType,
   Notifier,
   PluginManifest,
+  PreviewRenameResult,
   QualityDefinition,
   QualityProfile,
   RadarrServer,
+  RefreshScanResult,
   RegistryEntry,
   ScheduledJob,
   ScoredSearchResult,
@@ -142,8 +144,13 @@ export const api = {
       body: JSON.stringify({ mediaItemId }),
     }),
 
+  previewRenameLibraryFile: (id: string) =>
+    request<PreviewRenameResult>(`/library-files/${id}/preview-rename`),
+
   deleteMovie: (id: string, deleteFiles: boolean) =>
     request<void>(`/movies/${id}?deleteFiles=${deleteFiles}`, { method: "DELETE" }),
+
+  refreshMovie: (id: string) => request<RefreshScanResult>(`/movies/${id}/refresh`, { method: "POST" }),
 
   getMovieDetailExtras: (id: string) => request<MediaDetailExtras>(`/movies/${id}/detail-extras`),
 
@@ -298,6 +305,8 @@ export const api = {
   deleteShow: (id: string, deleteFiles: boolean) =>
     request<void>(`/shows/${id}?deleteFiles=${deleteFiles}`, { method: "DELETE" }),
 
+  refreshShow: (id: string) => request<RefreshScanResult>(`/shows/${id}/refresh`, { method: "POST" }),
+
   getSeasonPass: () => request<SeasonPassEntry[]>("/season-pass"),
 
   createShow: (body: {
@@ -348,6 +357,8 @@ export const api = {
 
   deleteAnime: (id: string, deleteFiles: boolean) =>
     request<void>(`/anime/${id}?deleteFiles=${deleteFiles}`, { method: "DELETE" }),
+
+  refreshAnime: (id: string) => request<RefreshScanResult>(`/anime/${id}/refresh`, { method: "POST" }),
 
   createAnime: (body: {
     externalId?: string;

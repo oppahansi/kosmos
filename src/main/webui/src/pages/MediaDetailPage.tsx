@@ -1,5 +1,7 @@
 import {
+  ArrowsClockwiseIcon as ArrowsClockwise,
   CheckCircleIcon as CheckCircle,
+  CheckIcon as Check,
   FolderOpenIcon as FolderOpen,
   ListMagnifyingGlassIcon as ListMagnifyingGlass,
   MagnifyingGlassIcon as MagnifyingGlass,
@@ -11,7 +13,7 @@ import {
   TelevisionIcon as Television,
   TrashIcon as Trash,
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
@@ -100,12 +102,22 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     setSeasonFolderEnabled,
     setEpisodeMonitored,
     setSeriesMonitoring,
+    refreshMedia,
   } = useMediaDetail(kind);
   const { admin, stateFor, triggerAdd } = useAddToLibrary();
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteFiles, setDeleteFiles] = useState(false);
   const [manageFilesOpen, setManageFilesOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<number | undefined>(undefined);
+
+  const say = (msg: string) => {
+    window.clearTimeout(toastTimer.current);
+    setToast(msg);
+    toastTimer.current = window.setTimeout(() => setToast(null), 3800);
+  };
 
   async function confirmDelete() {
     if (!ownedMedia) return;
@@ -113,6 +125,19 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     else if (kind === "show") await api.deleteShow(ownedMedia.id, deleteFiles);
     else await api.deleteAnime(ownedMedia.id, deleteFiles);
     navigate("/library");
+  }
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    try {
+      const result = await refreshMedia();
+      if (!result) return;
+      const parts = [result.metadataRefreshed ? "metadata updated" : "metadata unchanged"];
+      if (kind === "movie") parts.push(result.filesLinked > 0 ? `${result.filesLinked} new file(s) found` : "no new files found");
+      say(parts.join(", "));
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   const title = ownedMedia?.title ?? preview?.title ?? "";
@@ -347,6 +372,11 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                   {admin && (
                     <MoreActionsMenu
                       actions={[
+                        {
+                          label: refreshing ? "Refreshing…" : "Refresh & Scan",
+                          icon: <ArrowsClockwise size={14} className={refreshing ? "spin" : undefined} />,
+                          onClick: handleRefresh,
+                        },
                         ...(libraryFiles.length > 0
                           ? [
                               {
@@ -374,6 +404,11 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                     {admin && (
                       <MoreActionsMenu
                         actions={[
+                          {
+                            label: refreshing ? "Refreshing…" : "Refresh & Scan",
+                            icon: <ArrowsClockwise size={14} className={refreshing ? "spin" : undefined} />,
+                            onClick: handleRefresh,
+                          },
                           {
                             label: kind === "show" ? "Delete Show" : "Delete Anime",
                             icon: <Trash size={14} />,
@@ -511,6 +546,15 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
           onClose={() => setManageFilesOpen(false)}
           onChanged={reloadLibraryFiles}
         />
+      )}
+
+      {toast && (
+        <div className="toast">
+          <span className="toast-icon">
+            <Check size={12} />
+          </span>
+          <span style={{ fontSize: 12.5 }}>{toast}</span>
+        </div>
       )}
     </div>
   );

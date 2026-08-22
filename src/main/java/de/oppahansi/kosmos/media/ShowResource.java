@@ -1,6 +1,8 @@
 package de.oppahansi.kosmos.media;
 
 import de.oppahansi.kosmos.auth.CurrentUser;
+import de.oppahansi.kosmos.library.RefreshScanService;
+import de.oppahansi.kosmos.library.dto.RefreshScanResult;
 import de.oppahansi.kosmos.media.dto.CreateShowRequest;
 import de.oppahansi.kosmos.media.dto.SeasonResponse;
 import de.oppahansi.kosmos.media.dto.ShowDetailResponse;
@@ -35,6 +37,7 @@ public class ShowResource {
 
   @Inject ShowService showService;
   @Inject MediaItemDeletionService deletionService;
+  @Inject RefreshScanService refreshScanService;
   @Inject CurrentUser currentUser;
   @Inject MediaAvailabilityService mediaAvailabilityService;
 
@@ -109,6 +112,19 @@ public class ShowResource {
             .map(show -> Response.ok(toDetail(show)).build())
             .orElse(Response.status(Response.Status.NOT_FOUND).build())
         : Response.status(Response.Status.NOT_FOUND).build();
+  }
+
+  /**
+   * Re-fetches TMDB metadata (poster/backdrop/overview). No folder scan for shows — see the
+   * roadmap's own scope note on why.
+   */
+  @POST
+  @Path("/{id}/refresh")
+  public RefreshScanResult refresh(@PathParam("id") UUID id) {
+    if (!currentUser.isAdmin()) {
+      throw new ForbiddenException("Admin only");
+    }
+    return refreshScanService.refreshShow(id);
   }
 
   /**

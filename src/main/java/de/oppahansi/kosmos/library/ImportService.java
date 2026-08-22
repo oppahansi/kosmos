@@ -162,6 +162,16 @@ public class ImportService {
   }
 
   /**
+   * What {@link #importPath} would name this file under the current naming settings — Preview
+   * Rename's own backing call ({@code RefreshScanService}/{@code LibraryFileResource}), reusing the
+   * exact same template-rendering path a real import already goes through rather than a second
+   * implementation of it. {@code currentPathRaw} is only read for its extension.
+   */
+  public Path previewTargetPath(MediaItem mediaItem, String currentPathRaw) {
+    return targetPathFor(mediaItem, Path.of(currentPathRaw));
+  }
+
+  /**
    * Movies land directly under their own folder; episodes nest under their show/anime's own folder
    * instead of one named after the episode itself — a season subfolder for TV (matching Sonarr),
    * flat for anime, which has no season subfolder of its own yet. The exact shape of every folder
@@ -185,11 +195,33 @@ public class ImportService {
       default -> {
         NamingSettings settings = namingSettingsService.forContentType("movie");
         NamingContext context = NamingContext.forMovie(mediaItem.title, mediaItem.year);
-        String folderName = namingTemplateEngine.render(settings.folderTemplate, context);
         String fileName = namingTemplateEngine.render(settings.fileTemplate, context);
-        yield Path.of(rootFolder.path, folderName, fileName + extension);
+        yield movieFolder(mediaItem, rootFolder).resolve(fileName + extension);
       }
     };
+  }
+
+  /**
+   * The folder a movie's own file(s) are organized under — split out from {@link #targetPathFor}
+   * since {@code RefreshScanService}'s rescan needs to list this folder's contents without already
+   * knowing a specific source file (and so, unlike {@link #targetPathFor}, without an extension).
+   */
+  public Path movieFolder(MediaItem mediaItem) {
+    LibraryRootFolder rootFolder =
+        mediaItem.rootFolder != null
+            ? mediaItem.rootFolder
+            : rootFolderService
+                .getDefault(mediaItem.contentType)
+                .orElseThrow(
+                    () -> new InternalServerErrorException("No library root folder is configured"));
+    return movieFolder(mediaItem, rootFolder);
+  }
+
+  private Path movieFolder(MediaItem mediaItem, LibraryRootFolder rootFolder) {
+    NamingSettings settings = namingSettingsService.forContentType("movie");
+    NamingContext context = NamingContext.forMovie(mediaItem.title, mediaItem.year);
+    String folderName = namingTemplateEngine.render(settings.folderTemplate, context);
+    return Path.of(rootFolder.path, folderName);
   }
 
   private Path episodeTargetPath(
