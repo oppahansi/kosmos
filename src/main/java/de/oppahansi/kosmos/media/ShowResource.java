@@ -9,6 +9,7 @@ import de.oppahansi.kosmos.media.dto.UpdateMovieQualityProfileRequest;
 import de.oppahansi.kosmos.media.dto.UpdateSeasonFolderRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -16,6 +17,7 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.ArrayList;
@@ -31,6 +33,7 @@ import java.util.UUID;
 public class ShowResource {
 
   @Inject ShowService showService;
+  @Inject MediaItemDeletionService deletionService;
   @Inject CurrentUser currentUser;
   @Inject MediaAvailabilityService mediaAvailabilityService;
 
@@ -89,6 +92,21 @@ public class ShowResource {
         .updateSeasonFolderEnabled(id, request.seasonFolderEnabled())
         .map(show -> Response.ok(toDetail(show)).build())
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
+  /**
+   * {@code deleteFiles=true} also removes each episode's file from disk (best-effort); default is
+   * to remove Kosmos's own records only.
+   */
+  @DELETE
+  @Path("/{id}")
+  public Response delete(@PathParam("id") UUID id, @QueryParam("deleteFiles") boolean deleteFiles) {
+    if (!currentUser.isAdmin()) {
+      throw new ForbiddenException("Admin only");
+    }
+    return deletionService.deleteShow(id, deleteFiles)
+        ? Response.noContent().build()
+        : Response.status(Response.Status.NOT_FOUND).build();
   }
 
   /** Backs {@code ShowDetailPage}'s Cast/Details/More Like This sections. */

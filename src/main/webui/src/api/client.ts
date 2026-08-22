@@ -130,6 +130,9 @@ export const api = {
 
   listMovieLibraryFiles: (id: string) => request<LibraryFile[]>(`/movies/${id}/library-files`),
 
+  deleteMovie: (id: string, deleteFiles: boolean) =>
+    request<void>(`/movies/${id}?deleteFiles=${deleteFiles}`, { method: "DELETE" }),
+
   getMovieDetailExtras: (id: string) => request<MediaDetailExtras>(`/movies/${id}/detail-extras`),
 
   getMoviePreview: (externalId: string) => request<MediaPreview>(`/movies/tmdb/${externalId}`),
@@ -274,6 +277,9 @@ export const api = {
       body: JSON.stringify({ seasonFolderEnabled }),
     }),
 
+  deleteShow: (id: string, deleteFiles: boolean) =>
+    request<void>(`/shows/${id}?deleteFiles=${deleteFiles}`, { method: "DELETE" }),
+
   getSeasonPass: () => request<SeasonPassEntry[]>("/season-pass"),
 
   createShow: (body: {
@@ -303,6 +309,9 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ qualityProfileId }),
     }),
+
+  deleteAnime: (id: string, deleteFiles: boolean) =>
+    request<void>(`/anime/${id}?deleteFiles=${deleteFiles}`, { method: "DELETE" }),
 
   createAnime: (body: {
     externalId?: string;

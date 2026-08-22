@@ -1,6 +1,5 @@
 import {
   CheckCircleIcon as CheckCircle,
-  DotsThreeIcon as DotsThree,
   ListMagnifyingGlassIcon as ListMagnifyingGlass,
   MagnifyingGlassIcon as MagnifyingGlass,
   PlayCircleIcon as PlayCircle,
@@ -9,13 +8,18 @@ import {
   SpinnerIcon as Spinner,
   StarIcon as Star,
   TelevisionIcon as Television,
+  TrashIcon as Trash,
 } from "@phosphor-icons/react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
 import type { AnimeDetail, AnimeSeason, EpisodeStatus, Movie, PreviewEpisode, PreviewSeason, Season, ShowDetail } from "../api/types";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
 import { GroupedEpisodeList, type SeasonRowData } from "../components/detail/EpisodeList";
 import { FileStatusCard } from "../components/detail/FileStatusCard";
+import { MoreActionsMenu } from "../components/detail/MoreActionsMenu";
 import { QualityProfileDropdown } from "../components/detail/QualityProfileDropdown";
 import { Toggle } from "../components/Toggle";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
@@ -91,6 +95,16 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
   } = useMediaDetail(kind);
   const { admin, stateFor, triggerAdd } = useAddToLibrary();
   const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteFiles, setDeleteFiles] = useState(false);
+
+  async function confirmDelete() {
+    if (!ownedMedia) return;
+    if (kind === "movie") await api.deleteMovie(ownedMedia.id, deleteFiles);
+    else if (kind === "show") await api.deleteShow(ownedMedia.id, deleteFiles);
+    else await api.deleteAnime(ownedMedia.id, deleteFiles);
+    navigate("/library");
+  }
 
   const title = ownedMedia?.title ?? preview?.title ?? "";
   const year = ownedMedia?.year ?? preview?.year ?? null;
@@ -317,14 +331,35 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                       </button>
                     ))}
                   </div>
-                  <button type="button" className="btn btn-icon" aria-label="More actions">
-                    <DotsThree size={17} />
-                  </button>
+                  {admin && (
+                    <MoreActionsMenu
+                      actions={[
+                        {
+                          label: "Delete Movie",
+                          icon: <Trash size={14} />,
+                          destructive: true,
+                          onClick: () => setDeleteOpen(true),
+                        },
+                      ]}
+                    />
+                  )}
                 </div>
               ) : (
                 <>
                   <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
+                    {admin && (
+                      <MoreActionsMenu
+                        actions={[
+                          {
+                            label: kind === "show" ? "Delete Show" : "Delete Anime",
+                            icon: <Trash size={14} />,
+                            destructive: true,
+                            onClick: () => setDeleteOpen(true),
+                          },
+                        ]}
+                      />
+                    )}
                     {kind === "show" && (
                       <label
                         style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}
@@ -426,6 +461,22 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
         {kind !== "anime" && <CastRow cast={cast} />}
         <SimilarRow items={similar} />
       </div>
+
+      {deleteOpen && (
+        <ConfirmDialog
+          title={`Delete "${title}"?`}
+          body="This removes it from Kosmos permanently, including its match history and any requests tied to it."
+          confirmLabel="Delete"
+          extra={
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginTop: 4 }}>
+              <Toggle on={deleteFiles} onChange={setDeleteFiles} />
+              Also delete the file{kind === "movie" ? "" : "s"} from disk
+            </label>
+          }
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteOpen(false)}
+        />
+      )}
     </div>
   );
 }
