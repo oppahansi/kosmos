@@ -133,6 +133,12 @@ export const api = {
       body: JSON.stringify({ minimumAvailability }),
     }),
 
+  updateMovieRootFolder: (id: string, rootFolderId: string) =>
+    request<Movie>(`/movies/${id}/root-folder`, {
+      method: "PUT",
+      body: JSON.stringify({ rootFolderId }),
+    }),
+
   listMovieLibraryFiles: (id: string) => request<LibraryFile[]>(`/movies/${id}/library-files`),
 
   deleteLibraryFile: (id: string, deleteFromDisk: boolean) =>
@@ -288,6 +294,12 @@ export const api = {
     request<ShowDetail>(`/shows/${id}/quality-profile`, {
       method: "PUT",
       body: JSON.stringify({ qualityProfileId }),
+    }),
+
+  updateShowRootFolder: (id: string, rootFolderId: string) =>
+    request<ShowDetail>(`/shows/${id}/root-folder`, {
+      method: "PUT",
+      body: JSON.stringify({ rootFolderId }),
     }),
 
   updateShowSeasonFolder: (id: string, seasonFolderEnabled: boolean | null) =>

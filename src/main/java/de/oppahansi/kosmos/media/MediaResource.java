@@ -9,6 +9,7 @@ import de.oppahansi.kosmos.media.dto.CreateMovieRequest;
 import de.oppahansi.kosmos.media.dto.MovieResponse;
 import de.oppahansi.kosmos.media.dto.UpdateMinimumAvailabilityRequest;
 import de.oppahansi.kosmos.media.dto.UpdateMovieQualityProfileRequest;
+import de.oppahansi.kosmos.media.dto.UpdateRootFolderRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
@@ -99,6 +100,16 @@ public class MediaResource {
     requireAdmin();
     return movieService
         .updateQualityProfile(id, request.qualityProfileId())
+        .map(movie -> Response.ok(MovieResponse.from(movie)).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
+  @PUT
+  @Path("/{id}/root-folder")
+  public Response updateRootFolder(@PathParam("id") UUID id, UpdateRootFolderRequest request) {
+    requireAdmin();
+    return movieService
+        .updateRootFolder(id, request.rootFolderId())
         .map(movie -> Response.ok(MovieResponse.from(movie)).build())
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }

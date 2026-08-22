@@ -65,6 +65,11 @@ function saveQualityProfile(kind: MediaKind, id: string, qualityProfileId: strin
   return api.updateAnimeQualityProfile(id, qualityProfileId);
 }
 
+/** Anime has no root-folder reassignment yet — see the roadmap's own scope note on why. */
+function saveRootFolder(kind: MediaKind, id: string, rootFolderId: string): Promise<Movie | ShowDetail> {
+  return kind === "movie" ? api.updateMovieRootFolder(id, rootFolderId) : api.updateShowRootFolder(id, rootFolderId);
+}
+
 function saveEpisodeMonitored(kind: MediaKind, episodeId: string, monitored: boolean): Promise<unknown> {
   return kind === "anime"
     ? api.updateAnimeEpisodeMonitored(episodeId, monitored)
@@ -103,6 +108,7 @@ export function useMediaDetail(kind: MediaKind) {
     [kind, id],
   );
   const { data: profiles } = useApi(() => api.listQualityProfiles(), []);
+  const { data: rootFolders } = useApi(() => (kind === "anime" ? Promise.resolve([]) : api.listRootFolders()), [kind]);
   const {
     data: preview,
     loading: previewLoading,
@@ -112,6 +118,12 @@ export function useMediaDetail(kind: MediaKind) {
   async function setQualityProfile(qualityProfileId: string | null) {
     if (!id) return;
     await saveQualityProfile(kind, id, qualityProfileId);
+    reload();
+  }
+
+  async function setRootFolder(rootFolderId: string) {
+    if (!id || kind === "anime") return;
+    await saveRootFolder(kind, id, rootFolderId);
     reload();
   }
 
@@ -157,10 +169,12 @@ export function useMediaDetail(kind: MediaKind) {
     libraryFiles: libraryFiles ?? [],
     reloadLibraryFiles,
     profiles,
+    rootFolders: rootFolders ?? [],
     preview,
     previewLoading,
     previewError,
     setQualityProfile,
+    setRootFolder,
     setMinimumAvailability,
     setSeasonFolderEnabled,
     setEpisodeMonitored,

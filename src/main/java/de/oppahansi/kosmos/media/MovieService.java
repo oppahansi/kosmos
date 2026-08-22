@@ -83,6 +83,21 @@ public class MovieService {
             });
   }
 
+  /**
+   * Reassigns which registered root folder this movie belongs to. Does not itself move the file on
+   * disk — same as picking a folder at creation time, this only changes where Kosmos considers the
+   * title to belong.
+   */
+  @Transactional
+  public Optional<Movie> updateRootFolder(UUID movieId, UUID rootFolderId) {
+    return findById(movieId)
+        .map(
+            movie -> {
+              movie.mediaItem.rootFolder = rootFolderService.resolveOrThrow(rootFolderId);
+              return movie;
+            });
+  }
+
   @Transactional
   public Optional<Movie> updateMinimumAvailability(UUID movieId, MinimumAvailability availability) {
     return findById(movieId)

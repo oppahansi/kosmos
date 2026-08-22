@@ -25,6 +25,7 @@ import { FileStatusCard } from "../components/detail/FileStatusCard";
 import { ManageFilesDialog } from "../components/detail/ManageFilesDialog";
 import { MoreActionsMenu } from "../components/detail/MoreActionsMenu";
 import { QualityProfileDropdown } from "../components/detail/QualityProfileDropdown";
+import { RootFolderDropdown } from "../components/detail/RootFolderDropdown";
 import { SeriesMonitoringDropdown } from "../components/detail/SeriesMonitoringDropdown";
 import { Toggle } from "../components/Toggle";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
@@ -94,10 +95,12 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     libraryFiles,
     reloadLibraryFiles,
     profiles,
+    rootFolders,
     preview,
     previewLoading,
     previewError,
     setQualityProfile,
+    setRootFolder,
     setMinimumAvailability,
     setSeasonFolderEnabled,
     setEpisodeMonitored,
@@ -165,6 +168,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
   if (!owned && !preview) return null;
 
   const activeProfile = profiles?.find((p) => p.id === ownedMedia?.qualityProfileId) ?? null;
+  const activeRootFolderId = kind !== "anime" ? ((ownedMedia as Movie | ShowDetail | null)?.rootFolderId ?? null) : null;
   const file = kind === "movie" ? (libraryFiles[0] ?? null) : null;
 
   let groupedSeasons: SeasonRowData[] | null = null;
@@ -357,6 +361,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                     Interactive search
                   </Link>
                   <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
+                  {admin && <RootFolderDropdown folders={rootFolders} activeFolderId={activeRootFolderId} onSelect={setRootFolder} />}
                   <div className="seg" title="How soon after announcement automatic search may grab this movie">
                     {(["ANNOUNCED", "IN_CINEMAS", "RELEASED"] as const).map((option) => (
                       <button
@@ -401,6 +406,9 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                   <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
                     <SeriesMonitoringDropdown onSelect={(mode) => setSeriesMonitoring(mode)} />
+                    {admin && kind === "show" && (
+                      <RootFolderDropdown folders={rootFolders} activeFolderId={activeRootFolderId} onSelect={setRootFolder} />
+                    )}
                     {admin && (
                       <MoreActionsMenu
                         actions={[

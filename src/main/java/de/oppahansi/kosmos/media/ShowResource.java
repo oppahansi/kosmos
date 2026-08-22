@@ -8,6 +8,7 @@ import de.oppahansi.kosmos.media.dto.SeasonResponse;
 import de.oppahansi.kosmos.media.dto.ShowDetailResponse;
 import de.oppahansi.kosmos.media.dto.ShowResponse;
 import de.oppahansi.kosmos.media.dto.UpdateMovieQualityProfileRequest;
+import de.oppahansi.kosmos.media.dto.UpdateRootFolderRequest;
 import de.oppahansi.kosmos.media.dto.UpdateSeasonFolderRequest;
 import de.oppahansi.kosmos.media.dto.UpdateSeriesMonitoringRequest;
 import jakarta.inject.Inject;
@@ -82,6 +83,18 @@ public class ShowResource {
     }
     return showService
         .updateQualityProfile(id, request.qualityProfileId())
+        .map(show -> Response.ok(toDetail(show)).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
+  @PUT
+  @Path("/{id}/root-folder")
+  public Response updateRootFolder(@PathParam("id") UUID id, UpdateRootFolderRequest request) {
+    if (!currentUser.isAdmin()) {
+      throw new ForbiddenException("Admin only");
+    }
+    return showService
+        .updateRootFolder(id, request.rootFolderId())
         .map(show -> Response.ok(toDetail(show)).build())
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }

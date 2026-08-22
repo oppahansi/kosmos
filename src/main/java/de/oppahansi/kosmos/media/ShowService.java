@@ -137,6 +137,21 @@ public class ShowService {
   }
 
   /**
+   * Reassigns which registered root folder this show belongs to. Does not itself move files on disk
+   * — same as picking a folder at creation time, this only changes where Kosmos considers the title
+   * to belong.
+   */
+  @Transactional
+  public Optional<Show> updateRootFolder(UUID showId, UUID rootFolderId) {
+    return findById(showId)
+        .map(
+            show -> {
+              show.mediaItem.rootFolder = rootFolderService.resolveOrThrow(rootFolderId);
+              return show;
+            });
+  }
+
+  /**
    * {@code null} resets to "use the global show naming settings" — see {@link
    * Show#seasonFolderEnabled}.
    */

@@ -13,6 +13,7 @@ export interface Movie {
   releaseDate: string | null;
   digitalReleaseDate: string | null;
   minimumAvailability: MinimumAvailability;
+  rootFolderId: string | null;
 }
 
 export interface Show {
@@ -26,6 +27,7 @@ export interface Show {
   addedAt: string;
   qualityProfileId: string | null;
   partiallyAvailable: boolean;
+  rootFolderId: string | null;
 }
 
 export type EpisodeStatus = "MISSING" | "GRABBED" | "FAILED" | "IMPORTED" | "AVAILABLE";

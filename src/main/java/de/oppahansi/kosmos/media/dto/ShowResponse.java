@@ -15,7 +15,8 @@ public record ShowResponse(
     String status,
     Instant addedAt,
     UUID qualityProfileId,
-    boolean partiallyAvailable) {
+    boolean partiallyAvailable,
+    UUID rootFolderId) {
 
   public static ShowResponse from(Show show, boolean partiallyAvailable) {
     return new ShowResponse(
@@ -28,6 +29,7 @@ public record ShowResponse(
         show.status,
         show.mediaItem.addedAt,
         show.qualityProfile == null ? null : show.qualityProfile.id,
-        partiallyAvailable);
+        partiallyAvailable,
+        show.mediaItem.rootFolder == null ? null : show.mediaItem.rootFolder.id);
   }
 }

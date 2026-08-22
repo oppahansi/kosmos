@@ -27,6 +27,10 @@ public class LibraryRootFolderService {
     return LibraryRootFolder.findByIdOptional(id);
   }
 
+  public LibraryRootFolder resolveOrThrow(UUID id) {
+    return findById(id).orElseThrow(() -> new BadRequestException("Unknown root folder id: " + id));
+  }
+
   /**
    * The registered root folder a given on-disk file path actually lives under, if any — used when a
    * source (e.g. Jellyfin) reports a file's real path directly, so the item lands under the correct

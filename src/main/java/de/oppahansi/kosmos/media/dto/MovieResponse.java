@@ -18,7 +18,8 @@ public record MovieResponse(
     UUID qualityProfileId,
     LocalDate releaseDate,
     LocalDate digitalReleaseDate,
-    String minimumAvailability) {
+    String minimumAvailability,
+    UUID rootFolderId) {
 
   public static MovieResponse from(Movie movie) {
     return new MovieResponse(
@@ -33,6 +34,7 @@ public record MovieResponse(
         movie.qualityProfile == null ? null : movie.qualityProfile.id,
         movie.releaseDate,
         movie.digitalReleaseDate,
-        movie.minimumAvailability);
+        movie.minimumAvailability,
+        movie.mediaItem.rootFolder == null ? null : movie.mediaItem.rootFolder.id);
   }
 }
