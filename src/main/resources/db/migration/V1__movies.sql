@@ -225,7 +225,12 @@ CREATE TABLE grab (
     -- status by. Null when nothing was determinable at grab time (see GrabService).
     job_id              VARCHAR(100),
     status              VARCHAR(30) NOT NULL,
-    grabbed_at          TIMESTAMP NOT NULL
+    grabbed_at          TIMESTAMP NOT NULL,
+    -- When status moved to IMPORTED/FAILED — null until then. Grab's own status is mutated in
+    -- place (see the entity's own doc), so these are what let a HistoryEvent be recorded at the
+    -- moment each transition actually happens rather than only being inferable from current state.
+    imported_at         TIMESTAMP,
+    failed_at           TIMESTAMP
 );
 
 CREATE TABLE scheduled_job (
@@ -495,3 +500,21 @@ CREATE TABLE pending_candidate (
     download_url   VARCHAR(2000) NOT NULL,
     first_seen_at  TIMESTAMP NOT NULL
 );
+
+-- One entry in a media item's real audit trail (grabbed/imported/failed/file deleted/renamed) —
+-- see HistoryEvent's own doc for why this exists alongside Grab rather than extending it.
+-- media_item_id is nullable rather than cascading on delete: a title being removed from Kosmos
+-- shouldn't erase the record that it was once grabbed/imported (see MediaItemDeletionService).
+CREATE TABLE history_event (
+    id             VARCHAR(36) PRIMARY KEY,
+    media_item_id  VARCHAR(36) REFERENCES media_item(id),
+    -- Denormalized at write time, same convention as request.title — the row must still render a
+    -- real name once media_item_id is nulled out by a later delete.
+    title          VARCHAR(500) NOT NULL,
+    kind           VARCHAR(20) NOT NULL,
+    message        VARCHAR(1000) NOT NULL,
+    size_bytes     BIGINT,
+    occurred_at    TIMESTAMP NOT NULL
+);
+CREATE INDEX idx_history_event_media_item ON history_event(media_item_id);
+CREATE INDEX idx_history_event_occurred_at ON history_event(occurred_at);

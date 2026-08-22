@@ -74,8 +74,10 @@ public class ImportService {
     notificationEvent.fire(
         new NotificationEvent(
             NotificationEventType.IMPORT,
+            mediaItem.id,
             title,
-            title + " has been imported and is ready to watch."));
+            title + " has been imported and is ready to watch.",
+            file.sizeBytes));
     return file;
   }
 

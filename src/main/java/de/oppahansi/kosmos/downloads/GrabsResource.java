@@ -25,7 +25,32 @@ public class GrabsResource {
 
   @GET
   public List<GrabResponse> list() {
-    return Grab.<Grab>list("order by grabbedAt desc").stream().map(GrabResponse::from).toList();
+    return Grab.<Grab>list("order by grabbedAt desc").stream()
+        .map(this::toResponseWithLiveProgress)
+        .toList();
+  }
+
+  /**
+   * Best-effort live progress for a still-in-flight grab — the same client call {@code
+   * DownloadStatusPollJob} makes every 30s, just synchronous here so the Activity queue reflects
+   * current state on demand rather than only every poll tick.
+   */
+  private GrabResponse toResponseWithLiveProgress(Grab grab) {
+    if (!"GRABBED".equals(grab.status) || grab.jobId == null) {
+      return GrabResponse.from(grab);
+    }
+    try {
+      TorrentClient client = TorrentClients.forConfig(grab.downloadClient);
+      if (!client.login(grab.downloadClient.username, grab.downloadClient.password)) {
+        return GrabResponse.from(grab);
+      }
+      return client
+          .getTorrentInfo(grab.jobId)
+          .map(status -> GrabResponse.from(grab, status.progress() * 100))
+          .orElseGet(() -> GrabResponse.from(grab));
+    } catch (Exception e) {
+      return GrabResponse.from(grab);
+    }
   }
 
   @POST

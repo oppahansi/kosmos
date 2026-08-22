@@ -50,4 +50,11 @@ public class Grab extends KosmosEntity {
 
   @Column(name = "grabbed_at", nullable = false)
   public Instant grabbedAt;
+
+  /** When {@code status} moved to IMPORTED/FAILED — null until then. See the class's own doc. */
+  @Column(name = "imported_at")
+  public Instant importedAt;
+
+  @Column(name = "failed_at")
+  public Instant failedAt;
 }

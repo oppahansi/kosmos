@@ -1,10 +1,7 @@
 import { InfoIcon as Info } from "@phosphor-icons/react";
 import { useState } from "react";
 import type { LibraryFile, QualityProfile } from "../../api/types";
-
-function formatBytes(bytes: number): string {
-  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
-}
+import { formatBytes } from "../../utils/formatBytes";
 
 function formatDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);

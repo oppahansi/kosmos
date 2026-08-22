@@ -1,9 +1,9 @@
 package de.oppahansi.kosmos.sonarr;
 
 import de.oppahansi.kosmos.library.LibraryFile;
+import de.oppahansi.kosmos.library.LibraryFileLinkService;
 import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
-import de.oppahansi.kosmos.library.ProbeService;
 import de.oppahansi.kosmos.media.Episode;
 import de.oppahansi.kosmos.media.MediaItem;
 import de.oppahansi.kosmos.media.Show;
@@ -17,9 +17,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,7 +50,7 @@ public class SonarrSyncService {
   /** Same reasoning as {@code JellyfinSyncService} — release year is an absolute fact. */
   private static final int YEAR_TOLERANCE = 0;
 
-  @Inject ProbeService probeService;
+  @Inject LibraryFileLinkService libraryFileLinkService;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject LibraryRootFolderService rootFolderService;
   @Inject ShowService showService;
@@ -224,28 +221,9 @@ public class SonarrSyncService {
         continue;
       }
 
-      LibraryFile file = new LibraryFile();
-      file.mediaItem = episode.get().mediaItem;
-      file.path = sonarrEpisode.path();
-      file.sizeBytes = sizeOrZero(sonarrEpisode.path());
-      file.matchMethod = MATCH_METHOD;
-      file.matchConfidence = 1.0f;
-      file.matchPinned = false;
-      file.matchedAt = Instant.now();
-      file.verified = false;
-      file.importedAt = Instant.now();
-      probeService.tryProbe(file);
-      file.persist();
+      libraryFileLinkService.link(episode.get().mediaItem, sonarrEpisode.path(), MATCH_METHOD);
       linked++;
     }
     return linked;
-  }
-
-  private long sizeOrZero(String path) {
-    try {
-      return Files.size(Path.of(path));
-    } catch (Exception e) {
-      return 0L;
-    }
   }
 }

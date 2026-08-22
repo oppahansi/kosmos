@@ -7,9 +7,9 @@ import de.oppahansi.kosmos.jellyfin.dto.JellyfinLibrarySyncResult;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinUserSyncResult;
 import de.oppahansi.kosmos.jellyfin.dto.SeasonEpisodeCount;
 import de.oppahansi.kosmos.library.LibraryFile;
+import de.oppahansi.kosmos.library.LibraryFileLinkService;
 import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
-import de.oppahansi.kosmos.library.ProbeService;
 import de.oppahansi.kosmos.media.Anime;
 import de.oppahansi.kosmos.media.AnimeEpisode;
 import de.oppahansi.kosmos.media.AnimeService;
@@ -34,8 +34,6 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -80,7 +78,7 @@ public class JellyfinSyncService {
    */
   private static final int YEAR_TOLERANCE = 0;
 
-  @Inject ProbeService probeService;
+  @Inject LibraryFileLinkService libraryFileLinkService;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject LibraryRootFolderService rootFolderService;
   @Inject ShowService showService;
@@ -455,7 +453,7 @@ public class JellyfinSyncService {
       mediaItem = createMovie(movie);
       outcome = "created";
     }
-    createLibraryFile(mediaItem, movie);
+    libraryFileLinkService.link(mediaItem, movie.path(), MATCH_METHOD);
     return outcome;
   }
 
@@ -896,18 +894,7 @@ public class JellyfinSyncService {
         continue;
       }
 
-      LibraryFile file = new LibraryFile();
-      file.mediaItem = episode.get().mediaItem;
-      file.path = jellyfinEpisode.path();
-      file.sizeBytes = sizeOrZero(jellyfinEpisode.path());
-      file.matchMethod = MATCH_METHOD;
-      file.matchConfidence = 1.0f;
-      file.matchPinned = false;
-      file.matchedAt = Instant.now();
-      file.verified = false;
-      file.importedAt = Instant.now();
-      probeService.tryProbe(file);
-      file.persist();
+      libraryFileLinkService.link(episode.get().mediaItem, jellyfinEpisode.path(), MATCH_METHOD);
       linked++;
     }
     return linked;
@@ -951,18 +938,7 @@ public class JellyfinSyncService {
         continue;
       }
 
-      LibraryFile file = new LibraryFile();
-      file.mediaItem = episode.get().mediaItem;
-      file.path = jellyfinEpisode.path();
-      file.sizeBytes = sizeOrZero(jellyfinEpisode.path());
-      file.matchMethod = MATCH_METHOD;
-      file.matchConfidence = 1.0f;
-      file.matchPinned = false;
-      file.matchedAt = Instant.now();
-      file.verified = false;
-      file.importedAt = Instant.now();
-      probeService.tryProbe(file);
-      file.persist();
+      libraryFileLinkService.link(episode.get().mediaItem, jellyfinEpisode.path(), MATCH_METHOD);
       linked++;
     }
     return linked;
@@ -1175,29 +1151,6 @@ public class JellyfinSyncService {
   private Optional<LibraryRootFolder> resolveRootFolder(String path, String contentType) {
     Optional<LibraryRootFolder> containing = rootFolderService.findContaining(path);
     return containing.isPresent() ? containing : rootFolderService.getDefault(contentType);
-  }
-
-  private void createLibraryFile(MediaItem mediaItem, JellyfinMovie jellyfinMovie) {
-    LibraryFile file = new LibraryFile();
-    file.mediaItem = mediaItem;
-    file.path = jellyfinMovie.path();
-    file.sizeBytes = sizeOrZero(jellyfinMovie.path());
-    file.matchMethod = MATCH_METHOD;
-    file.matchConfidence = 1.0f;
-    file.matchPinned = false;
-    file.matchedAt = Instant.now();
-    file.verified = false;
-    file.importedAt = Instant.now();
-    probeService.tryProbe(file); // best-effort — only succeeds if Kosmos can see this path too
-    file.persist();
-  }
-
-  private long sizeOrZero(String path) {
-    try {
-      return Files.size(Path.of(path));
-    } catch (Exception e) {
-      return 0L;
-    }
   }
 
   private Plugin findOrCreateTmdbPlugin() {

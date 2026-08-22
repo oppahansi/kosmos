@@ -1,112 +1,132 @@
 import {
   ArrowDownIcon as ArrowDown,
   ArrowFatLineUpIcon as ArrowFatLineUp,
-  CaretDownIcon as CaretDown,
   CheckIcon as Check,
   ClockCounterClockwiseIcon as ClockCounterClockwise,
-  DotsThreeIcon as DotsThree,
-  EyeIcon as Eye,
   FolderOpenIcon as FolderOpen,
   MagnifyingGlassIcon as MagnifyingGlass,
-  PauseIcon as Pause,
-  PlayIcon as Play,
+  TrashIcon as Trash,
   XIcon as X,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  activeDownloadSources,
-  historyFilterKind,
-  historyFilters,
-  mockHistory,
-  type HistoryEventKind,
-  type HistoryFilter,
-} from "../mocks/mockActivity";
+import { api, ApiError } from "../api/client";
+import type { ActivityHistoryItem, Grab } from "../api/types";
+import { useApi } from "../hooks/useApi";
+import { formatBytes } from "../utils/formatBytes";
+import { relativeTime } from "../utils/relativeTime";
 import { tonalGradient } from "../utils/tonalGradient";
 
-const EVENT_META: Record<HistoryEventKind, { icon: typeof Check; bgClass: string; fgVar: string }> = {
-  done: { icon: Check, bgClass: "", fgVar: "var(--status-good-text)" },
-  upgrade: { icon: ArrowFatLineUp, bgClass: "", fgVar: "var(--accent-tint)" },
-  grab: { icon: ArrowDown, bgClass: "", fgVar: "var(--status-warn-text)" },
-  fail: { icon: X, bgClass: "", fgVar: "var(--status-bad-text)" },
-};
-const EVENT_BG: Record<HistoryEventKind, string> = {
-  done: "rgba(79,191,139,.14)",
-  upgrade: "rgba(145,132,217,.16)",
-  grab: "rgba(224,169,74,.14)",
-  fail: "rgba(224,104,95,.14)",
+type HistoryFilter = "All" | "Grabbed" | "Imported" | "Failed";
+const HISTORY_FILTERS: HistoryFilter[] = ["All", "Grabbed", "Imported", "Failed"];
+const HISTORY_FILTER_KIND: Record<HistoryFilter, ActivityHistoryItem["kind"] | null> = {
+  All: null,
+  Grabbed: "GRABBED",
+  Imported: "IMPORTED",
+  Failed: "FAILED",
 };
 
-function fmtGb(gb: number): string {
-  return `${gb.toFixed(1)} GB`;
+const EVENT_META: Record<
+  ActivityHistoryItem["kind"],
+  { icon: typeof Check; fg: string; bg: string }
+> = {
+  IMPORTED: { icon: Check, fg: "var(--status-good-text)", bg: "rgba(79,191,139,.14)" },
+  UPGRADED: { icon: ArrowFatLineUp, fg: "var(--accent-tint)", bg: "rgba(145,132,217,.16)" },
+  GRABBED: { icon: ArrowDown, fg: "var(--status-warn-text)", bg: "rgba(224,169,74,.14)" },
+  FAILED: { icon: X, fg: "var(--status-bad-text)", bg: "rgba(224,104,95,.14)" },
+  FILE_DELETED: { icon: Trash, fg: "var(--status-bad-text)", bg: "rgba(224,104,95,.14)" },
+  RENAMED: { icon: Check, fg: "var(--text-muted)", bg: "rgba(233,233,237,.08)" },
+};
+
+function dayLabel(iso: string): string {
+  const date = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const sameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  if (sameDay(date, today)) return "Today";
+  if (sameDay(date, yesterday)) return "Yesterday";
+  return date.toLocaleDateString(undefined, { month: "long", day: "numeric" });
 }
 
 export default function ActivityPage() {
-  const [tick, setTick] = useState(0);
-  const [hovered, setHovered] = useState<number | null>(null);
-  const [previewEmpty, setPreviewEmpty] = useState(false);
+  const { data: grabs, reload: reloadGrabs } = useApi(() => api.listGrabs(), []);
+  const { data: history, reload: reloadHistory } = useApi(() => api.listActivityHistory(200), []);
+  const { data: activityStats, reload: reloadStats } = useApi(() => api.activityStats(), []);
   const [histFilter, setHistFilter] = useState<HistoryFilter>("All");
+  const [markingFailed, setMarkingFailed] = useState<string | null>(null);
+  const [searchingMissing, setSearchingMissing] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
+  // Live progress only changes server-side (the download client itself), so poll rather than
+  // relying on a local tick — GrabsResource already fetches current progress on every call.
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    const id = setInterval(reloadGrabs, 5000);
     return () => clearInterval(id);
-  }, []);
+  }, [reloadGrabs]);
 
-  const isEmpty = previewEmpty;
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast((current) => (current === message ? null : current)), 6000);
+  }
 
-  const active = useMemo(
-    () =>
-      activeDownloadSources.map((d, i) => {
-        const paused = d.state === "paused";
-        const raw = paused ? d.base : d.base + d.rate * tick;
-        const pct = Math.min(99.4, raw);
-        const secsLeft = paused ? 0 : Math.max(6, Math.round((100 - pct) / d.rate));
-        const eta = paused ? "paused" : secsLeft > 90 ? `${Math.round(secsLeft / 60)}m left` : `${secsLeft}s left`;
-        return {
-          ...d,
-          index: i,
-          pct,
-          eta,
-          doneGb: fmtGb((d.sizeGb * pct) / 100),
-          sizeLabel: fmtGb(d.sizeGb),
-          speedLabel: paused ? "— MB/s" : `${d.speedMbps.toFixed(1)} MB/s`,
-        };
-      }),
-    [tick],
-  );
+  const queue = useMemo(() => grabs?.filter((g) => g.status === "GRABBED") ?? [], [grabs]);
+  const isEmpty = queue.length === 0;
 
-  const totalSpeed = activeDownloadSources.reduce((a, d) => a + (d.state === "paused" ? 0 : d.speedMbps), 0);
-  const downloadingCount = activeDownloadSources.filter((d) => d.state === "downloading").length;
-  const pausedCount = activeDownloadSources.length - downloadingCount;
+  const importedToday = activityStats?.importedToday ?? 0;
+  const failedToday = activityStats?.failedToday ?? 0;
 
-  const groups = useMemo(
-    () =>
-      mockHistory
-        .map((g) => ({
-          label: g.label,
-          rows: g.rows.filter((r) => !historyFilterKind[histFilter] || r.kind === historyFilterKind[histFilter]),
-        }))
-        .filter((g) => g.rows.length > 0),
-    [histFilter],
-  );
+  const groups = useMemo(() => {
+    const kind = HISTORY_FILTER_KIND[histFilter];
+    const filtered = (history ?? []).filter((h) => !kind || h.kind === kind);
+    const byLabel = new Map<string, ActivityHistoryItem[]>();
+    for (const item of filtered) {
+      const label = dayLabel(item.occurredAt);
+      const rows = byLabel.get(label) ?? [];
+      rows.push(item);
+      byLabel.set(label, rows);
+    }
+    return Array.from(byLabel.entries()).map(([label, rows]) => ({ label, rows }));
+  }, [histFilter, history]);
+
+  async function markFailed(grab: Grab) {
+    setMarkingFailed(grab.id);
+    try {
+      await api.markGrabFailed(grab.id);
+      reloadGrabs();
+      reloadHistory();
+      reloadStats();
+    } catch (e) {
+      showToast(e instanceof ApiError ? `Could not mark failed: ${e.message}` : "Could not mark failed");
+    } finally {
+      setMarkingFailed(null);
+    }
+  }
+
+  async function searchAllMissing() {
+    setSearchingMissing(true);
+    try {
+      await Promise.all(
+        ["automatic-search", "tv-automatic-search", "anime-automatic-search"].map((name) =>
+          api.runJobNow(name).catch(() => null),
+        ),
+      );
+      showToast("Automatic search started for every monitored title.");
+    } finally {
+      setSearchingMissing(false);
+    }
+  }
 
   const headline = isEmpty
-    ? "queue clear · 34 events in history"
-    : `${downloadingCount} downloading · ${pausedCount} paused · ${totalSpeed.toFixed(1)} MB/s`;
+    ? `queue clear · ${history?.length ?? 0} events in history`
+    : `${queue.length} downloading`;
 
-  const stats = isEmpty
-    ? [
-        { label: "Queue", value: "Empty", dotClass: "" },
-        { label: "Speed", value: "0 MB/s", dotClass: "" },
-        { label: "Imported today", value: "6 files", dotClass: "" },
-        { label: "Missing", value: "7 titles", dotClass: "" },
-      ]
-    : [
-        { label: "Downloading", value: `${downloadingCount} of ${activeDownloadSources.length}`, dotClass: "dot-warn pulsing" },
-        { label: "Combined speed", value: `${totalSpeed.toFixed(1)} MB/s`, dotClass: "dot pulsing", dotBg: "var(--accent-2)" },
-        { label: "Imported today", value: "6 files", dotClass: "dot-good" },
-        { label: "Failed today", value: "2 grabs", dotClass: "dot-bad" },
-      ];
+  const stats = [
+    { label: "Queue", value: isEmpty ? "Empty" : `${queue.length} active`, dotClass: isEmpty ? "" : "dot-warn pulsing" },
+    { label: "Imported today", value: `${importedToday} files`, dotClass: "dot-good" },
+    { label: "Failed today", value: `${failedToday} grabs`, dotClass: failedToday > 0 ? "dot-bad" : "" },
+  ];
 
   return (
     <div className="page with-top-padding">
@@ -122,14 +142,6 @@ export default function ActivityPage() {
             <FolderOpen size={14} />
             Manual Import
           </Link>
-          <button type="button" className="btn btn-ghost" onClick={() => setPreviewEmpty((v) => !v)}>
-            <Eye size={13} />
-            {isEmpty ? "Show active queue" : "Preview empty queue"}
-          </button>
-          <button type="button" className="btn btn-secondary">
-            <Pause size={14} />
-            Pause all
-          </button>
         </div>
       </div>
 
@@ -137,7 +149,7 @@ export default function ActivityPage() {
         {stats.map((s) => (
           <div className="stat-card" key={s.label}>
             <div className="stat-card-label">
-              <span className={`dot ${s.dotClass}`} style={s.dotBg ? { background: s.dotBg } : undefined} />
+              <span className={`dot ${s.dotClass}`} />
               {s.label.toUpperCase()}
             </div>
             <div className="stat-card-value">{s.value}</div>
@@ -150,21 +162,14 @@ export default function ActivityPage() {
           <div style={{ display: "flex", alignItems: "baseline", gap: 11, marginBottom: 14 }}>
             <h2 style={{ margin: 0, fontSize: 17, fontWeight: 500, letterSpacing: "-0.02em" }}>Downloading now</h2>
             <span className="text-faint" style={{ fontSize: 11.5 }}>
-              {activeDownloadSources.length} in queue · {totalSpeed.toFixed(1)} MB/s combined
+              {queue.length} in queue
             </span>
           </div>
 
-          {active.map((d) => {
-            const paused = d.state === "paused";
-            const on = hovered === d.index;
+          {queue.map((grab, i) => {
+            const pct = grab.progressPercent;
             return (
-              <div
-                key={d.title}
-                className="download-row"
-                style={on ? { background: "var(--bg-elevated)", borderColor: "var(--border)" } : undefined}
-                onMouseEnter={() => setHovered(d.index)}
-                onMouseLeave={() => setHovered(null)}
-              >
+              <div key={grab.id} className="download-row">
                 <div
                   style={{
                     width: 46,
@@ -173,16 +178,16 @@ export default function ActivityPage() {
                     overflow: "hidden",
                     flex: "none",
                     border: "1px solid var(--border-subtle)",
-                    background: tonalGradient(d.index + 1),
+                    background: tonalGradient(i + 1),
                   }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 5 }}>
                     <span style={{ fontSize: 14.5, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {d.title}
+                      {grab.title}
                     </span>
                     <span className="tag-outline" style={{ padding: "3px 7px", fontSize: 10.5, fontFamily: "var(--font-mono)", flex: "none" }}>
-                      {d.tag}
+                      {grab.downloadClientName}
                     </span>
                     <span
                       style={{
@@ -194,11 +199,11 @@ export default function ActivityPage() {
                         fontWeight: 600,
                         letterSpacing: "0.08em",
                         textTransform: "uppercase",
-                        color: paused ? "var(--text-muted)" : "var(--status-warn-text)",
+                        color: "var(--status-warn-text)",
                       }}
                     >
-                      <span className={`dot${paused ? "" : " pulsing"}`} style={{ background: paused ? "var(--text-disabled)" : "#E0A94A" }} />
-                      {paused ? "Paused" : "Downloading"}
+                      <span className="dot pulsing" style={{ background: "#E0A94A" }} />
+                      Downloading
                     </span>
                   </div>
                   <div
@@ -206,44 +211,37 @@ export default function ActivityPage() {
                       fontFamily: "var(--font-mono)",
                       fontSize: 11,
                       color: "var(--text-faint)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
                       marginBottom: 9,
                     }}
                   >
-                    {d.release}
+                    grabbed {relativeTime(grab.grabbedAt)}
                   </div>
                   <div className="progress-track" style={{ marginBottom: 8 }}>
                     <div
                       className="progress-fill"
                       style={{
-                        width: `${d.pct}%`,
-                        background: paused ? "rgba(233,233,237,.28)" : "var(--accent-gradient)",
+                        width: `${pct ?? 0}%`,
+                        background: "var(--accent-gradient)",
                         transition: "width 900ms linear",
                       }}
                     />
                   </div>
                   <div className="download-stat-line">
-                    <span style={{ color: paused ? "var(--text-secondary)" : "var(--accent-2)", fontWeight: 500 }}>{d.pct.toFixed(1)}%</span>
-                    <span>
-                      {d.doneGb} of {d.sizeLabel}
+                    <span style={{ color: "var(--accent-2)", fontWeight: 500 }}>
+                      {pct != null ? `${pct.toFixed(1)}%` : "—"}
                     </span>
-                    <span className="text-faint">{d.speedLabel}</span>
-                    <span className="text-faint">{d.eta}</span>
-                    <span className="text-disabled">{d.seeds}</span>
-                    <span className="text-disabled">{d.indexer}</span>
                   </div>
                 </div>
-                <div className="download-row-actions" style={{ opacity: on ? 1 : 0.5, transition: "opacity 160ms" }}>
-                  <button type="button" className="btn-icon" aria-label={paused ? "Resume" : "Pause"}>
-                    {paused ? <Play size={15} weight="fill" /> : <Pause size={15} />}
-                  </button>
-                  <button type="button" className="btn-icon" aria-label="Cancel">
+                <div className="download-row-actions">
+                  <button
+                    type="button"
+                    className="btn-icon"
+                    aria-label="Mark failed"
+                    title="Mark failed — blocklists this release and frees the title for another search"
+                    disabled={markingFailed === grab.id}
+                    onClick={() => markFailed(grab)}
+                  >
                     <X size={15} />
-                  </button>
-                  <button type="button" className="btn-icon" aria-label="More actions">
-                    <DotsThree size={16} />
                   </button>
                 </div>
               </div>
@@ -284,34 +282,36 @@ export default function ActivityPage() {
               quality profile.
             </p>
             <div className="empty-state-actions">
-              <button type="button" className="btn btn-hero">
+              <button type="button" className="btn btn-hero" disabled={searchingMissing} onClick={searchAllMissing}>
                 <MagnifyingGlass size={15} />
-                Search all missing (7)
+                {searchingMissing ? "Searching…" : "Search all missing now"}
               </button>
-              <button type="button" className="btn btn-secondary">
+              <a href="#history" className="btn btn-secondary">
                 <ClockCounterClockwise size={15} />
                 Jump to history
-              </button>
+              </a>
             </div>
           </div>
         </div>
       )}
 
-      <div style={{ marginTop: isEmpty ? 8 : 34 }}>
+      <div id="history" style={{ marginTop: isEmpty ? 8 : 34 }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 16 }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 500, letterSpacing: "-0.02em" }}>History</h2>
           <span className="text-faint" style={{ fontSize: 11.5 }}>
-            last 48 hours · 34 events
+            {history?.length ?? 0} events
           </span>
           <div style={{ flex: 1 }} />
           <div className="filter-tabs">
-            {historyFilters.map((f) => (
+            {HISTORY_FILTERS.map((f) => (
               <button key={f} className={histFilter === f ? "active" : ""} onClick={() => setHistFilter(f)}>
                 {f}
               </button>
             ))}
           </div>
         </div>
+
+        {groups.length === 0 && <p className="text-faint">No history yet.</p>}
 
         {groups.map((g) => (
           <div className="history-group" key={g.label}>
@@ -321,40 +321,32 @@ export default function ActivityPage() {
                 const meta = EVENT_META[h.kind];
                 const Icon = meta.icon;
                 return (
-                  <div className="history-row" key={`${g.label}-${h.title}-${h.time}`}>
-                    <span className="history-row-icon" style={{ background: EVENT_BG[h.kind], color: meta.fgVar }}>
+                  <div className="history-row" key={h.id}>
+                    <span className="history-row-icon" style={{ background: meta.bg, color: meta.fg }}>
                       <Icon size={14} />
                     </span>
                     <div style={{ minWidth: 0 }}>
-                      <div className="history-row-title" style={{ color: h.kind === "fail" ? "var(--text-secondary)" : "var(--text-primary)" }}>
+                      <div className="history-row-title" style={{ color: h.kind === "FAILED" ? "var(--text-secondary)" : "var(--text-primary)" }}>
                         {h.title}
                       </div>
-                      <div className="history-row-release">{h.release}</div>
+                      <div className="history-row-release">{h.message}</div>
                     </div>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: meta.fgVar }}>{h.event}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: meta.fg }}>{h.kind}</span>
                     <span className="text-faint" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
-                      {h.size}
+                      {h.sizeBytes ? formatBytes(h.sizeBytes) : ""}
                     </span>
                     <span className="text-disabled" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
-                      {h.time}
+                      {relativeTime(h.occurredAt)}
                     </span>
-                    <button type="button" className="btn-icon" style={{ width: 26, height: 26 }} aria-label="More actions">
-                      <DotsThree size={14} />
-                    </button>
                   </div>
                 );
               })}
             </div>
           </div>
         ))}
-
-        <div style={{ display: "flex", justifyContent: "center", paddingTop: 4 }}>
-          <button type="button" className="btn btn-ghost">
-            Load older events
-            <CaretDown size={12} />
-          </button>
-        </div>
       </div>
+
+      {toast && <div className="toast">{toast}</div>}
     </div>
   );
 }

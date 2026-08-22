@@ -7,6 +7,7 @@ import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -96,6 +97,7 @@ public class DownloadStatusPollJob implements JobHandler {
               : "Download client reported failure";
       blocklistService.blockRelease(grab.release, reason);
       grab.status = "FAILED";
+      grab.failedAt = Instant.now();
       return;
     }
 
@@ -110,5 +112,6 @@ public class DownloadStatusPollJob implements JobHandler {
 
     importService.importPath(grab.release.mediaItem, contentPath);
     grab.status = "IMPORTED";
+    grab.importedAt = Instant.now();
   }
 }

@@ -1,9 +1,9 @@
 package de.oppahansi.kosmos.radarr;
 
 import de.oppahansi.kosmos.library.LibraryFile;
+import de.oppahansi.kosmos.library.LibraryFileLinkService;
 import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
-import de.oppahansi.kosmos.library.ProbeService;
 import de.oppahansi.kosmos.media.MediaItem;
 import de.oppahansi.kosmos.media.Movie;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
@@ -16,8 +16,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -42,7 +40,7 @@ public class RadarrSyncService {
   private static final String TMDB_PLUGIN_SLUG = "tmdb";
   private static final String MATCH_METHOD = "RADARR_SYNC";
 
-  @Inject ProbeService probeService;
+  @Inject LibraryFileLinkService libraryFileLinkService;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject LibraryRootFolderService rootFolderService;
   @Inject ExternalIdLinkService externalIdLinkService;
@@ -127,7 +125,7 @@ public class RadarrSyncService {
       mediaItem = createMovie(movie);
       outcome = "created";
     }
-    createLibraryFile(mediaItem, movie);
+    libraryFileLinkService.link(mediaItem, movie.path(), MATCH_METHOD);
     return outcome;
   }
 
@@ -174,28 +172,5 @@ public class RadarrSyncService {
   private Optional<LibraryRootFolder> resolveRootFolder(String path) {
     Optional<LibraryRootFolder> containing = rootFolderService.findContaining(path);
     return containing.isPresent() ? containing : rootFolderService.getDefault("movie");
-  }
-
-  private void createLibraryFile(MediaItem mediaItem, RadarrMovie radarrMovie) {
-    LibraryFile file = new LibraryFile();
-    file.mediaItem = mediaItem;
-    file.path = radarrMovie.path();
-    file.sizeBytes = sizeOrZero(radarrMovie.path());
-    file.matchMethod = MATCH_METHOD;
-    file.matchConfidence = 1.0f;
-    file.matchPinned = false;
-    file.matchedAt = Instant.now();
-    file.verified = false;
-    file.importedAt = Instant.now();
-    probeService.tryProbe(file); // best-effort — only succeeds if Kosmos can see this path too
-    file.persist();
-  }
-
-  private long sizeOrZero(String path) {
-    try {
-      return Files.size(Path.of(path));
-    } catch (Exception e) {
-      return 0L;
-    }
   }
 }

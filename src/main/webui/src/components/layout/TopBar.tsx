@@ -8,10 +8,8 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { useActiveGrabCount } from "../../hooks/useActiveGrabCount";
 import { useAppHistory } from "../../hooks/useAppHistory";
-import { activeDownloadSources } from "../../mocks/mockActivity";
-
-const downloadingCount = activeDownloadSources.filter((d) => d.state === "downloading").length;
 
 interface TopBarProps {
   scrolled: boolean;
@@ -24,6 +22,7 @@ export function TopBar({ scrolled }: TopBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const { user, logout } = useAuth();
   const { canGoBack, canGoForward } = useAppHistory();
+  const downloadingCount = useActiveGrabCount();
 
   const initials =
     user?.displayName

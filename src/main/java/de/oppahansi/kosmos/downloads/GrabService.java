@@ -71,7 +71,7 @@ public class GrabService {
     grab.grabbedAt = Instant.now();
     grab.persist();
 
-    fireGrabbed(release.titleRaw);
+    fireGrabbed(mediaItem.get().id, release.titleRaw);
     return Optional.of(grab);
   }
 
@@ -105,7 +105,7 @@ public class GrabService {
     grab.grabbedAt = Instant.now();
     grab.persist();
 
-    fireGrabbed(release.titleRaw);
+    fireGrabbed(mediaItem.get().id, release.titleRaw);
     return Optional.of(grab);
   }
 
@@ -122,14 +122,19 @@ public class GrabService {
         g -> {
           blocklistService.blockRelease(g.release, "Marked failed by user");
           g.status = "FAILED";
+          g.failedAt = Instant.now();
         });
     return grab;
   }
 
-  private void fireGrabbed(String releaseTitle) {
+  private void fireGrabbed(UUID mediaItemId, String releaseTitle) {
     notificationEvent.fire(
         new NotificationEvent(
-            NotificationEventType.GRAB, releaseTitle, "Grabbed \"" + releaseTitle + "\"."));
+            NotificationEventType.GRAB,
+            mediaItemId,
+            releaseTitle,
+            "Grabbed \"" + releaseTitle + "\".",
+            null));
   }
 
   private Optional<String> sendFileToClient(

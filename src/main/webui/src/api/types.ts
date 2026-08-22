@@ -425,6 +425,22 @@ export interface Grab {
   downloadClientName: string;
   status: string;
   grabbedAt: string;
+  progressPercent: number | null;
+}
+
+export interface ActivityStats {
+  importedToday: number;
+  failedToday: number;
+}
+
+export interface ActivityHistoryItem {
+  id: string;
+  mediaItemId: string | null;
+  title: string;
+  kind: "GRABBED" | "IMPORTED" | "UPGRADED" | "FAILED" | "FILE_DELETED" | "RENAMED";
+  message: string;
+  sizeBytes: number | null;
+  occurredAt: string;
 }
 
 export interface BlocklistEntry {

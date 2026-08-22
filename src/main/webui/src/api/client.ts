@@ -1,4 +1,6 @@
 import type {
+  ActivityHistoryItem,
+  ActivityStats,
   Anime,
   AnimeDetail,
   AnimeEpisodeDetail,
@@ -519,6 +521,11 @@ export const api = {
   listGrabs: () => request<Grab[]>("/grabs"),
 
   markGrabFailed: (grabId: string) => request<Grab>(`/grabs/${grabId}/mark-failed`, { method: "POST" }),
+
+  listActivityHistory: (limit?: number) =>
+    request<ActivityHistoryItem[]>(`/activity/history${limit ? `?limit=${limit}` : ""}`),
+
+  activityStats: () => request<ActivityStats>("/activity/stats"),
 
   listBlocklist: () => request<BlocklistEntry[]>("/blocklist"),
 

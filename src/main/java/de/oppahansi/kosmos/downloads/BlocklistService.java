@@ -37,8 +37,10 @@ public class BlocklistService {
     notificationEvent.fire(
         new NotificationEvent(
             NotificationEventType.BLOCKLIST,
+            release.mediaItem.id,
             release.titleRaw,
-            "Blocklisted \"" + release.titleRaw + "\": " + reason));
+            "Blocklisted \"" + release.titleRaw + "\": " + reason,
+            null));
   }
 
   public boolean isBlocked(UUID mediaItemId, String downloadUrl) {

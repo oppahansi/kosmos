@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.media;
 
+import de.oppahansi.kosmos.activity.HistoryEvent;
 import de.oppahansi.kosmos.downloads.Blocklist;
 import de.oppahansi.kosmos.downloads.Grab;
 import de.oppahansi.kosmos.downloads.PendingCandidate;
@@ -34,8 +35,9 @@ import java.util.UUID;
  * testing as a spurious {@code TransientPropertyValueException} on an association nothing in this
  * class ever actually mutates). Working in pure bulk queries sidesteps that class of bug entirely.
  *
- * <p>{@code request} rows are never deleted, only unlinked ({@code mediaItem} set to null) — a
- * request is an audit record of what was once asked for, not owned by the title it resolved to.
+ * <p>{@code request} and {@code history_event} rows are never deleted, only unlinked ({@code
+ * mediaItem} set to null) — both are audit records of what once happened, not owned by the title
+ * they were about.
  */
 @ApplicationScoped
 public class MediaItemDeletionService {
@@ -120,6 +122,7 @@ public class MediaItemDeletionService {
     PendingCandidate.delete("mediaItem.id", mediaItemId);
     MediaItemExternalId.delete("mediaItem.id", mediaItemId);
     Request.update("mediaItem = null where mediaItem.id = ?1", mediaItemId);
+    HistoryEvent.update("mediaItem = null where mediaItem.id = ?1", mediaItemId);
   }
 
   private List<String> libraryFilePaths(UUID mediaItemId) {

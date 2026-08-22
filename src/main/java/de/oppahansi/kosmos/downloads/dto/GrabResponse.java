@@ -11,9 +11,17 @@ public record GrabResponse(
     UUID downloadClientId,
     String downloadClientName,
     String status,
-    Instant grabbedAt) {
+    Instant grabbedAt,
+    /**
+     * 0-100, live from the download client — null when not GRABBED or the client is unreachable.
+     */
+    Double progressPercent) {
 
   public static GrabResponse from(Grab grab) {
+    return from(grab, null);
+  }
+
+  public static GrabResponse from(Grab grab, Double progressPercent) {
     return new GrabResponse(
         grab.id,
         grab.release.id,
@@ -21,6 +29,7 @@ public record GrabResponse(
         grab.downloadClient.id,
         grab.downloadClient.name,
         grab.status,
-        grab.grabbedAt);
+        grab.grabbedAt,
+        progressPercent);
   }
 }

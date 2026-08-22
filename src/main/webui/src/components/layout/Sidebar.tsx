@@ -3,12 +3,10 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
+import { useActiveGrabCount } from "../../hooks/useActiveGrabCount";
 import { useApi } from "../../hooks/useApi";
-import { activeDownloadSources } from "../../mocks/mockActivity";
 import { formatTb } from "../../utils/formatBytes";
 import { navItems } from "./navItems";
-
-const activeJobCount = activeDownloadSources.filter((d) => d.state === "downloading").length;
 
 /** Library stats change from several places (Jellyfin sync, manual add, import) rather than one
  * single event stream worth subscribing to — a light periodic refresh keeps the sidebar's counts
@@ -32,6 +30,7 @@ export function Sidebar() {
   const { user } = useAuth();
   const { data: requests } = useApi(() => api.listRequests(), [user?.id]);
   const { data: stats, reload: reloadStats } = useApi(() => api.libraryStats(), []);
+  const activeJobCount = useActiveGrabCount();
 
   useEffect(() => {
     const id = window.setInterval(reloadStats, LIBRARY_STATS_REFRESH_MS);
