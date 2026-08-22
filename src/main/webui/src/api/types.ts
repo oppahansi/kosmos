@@ -571,10 +571,13 @@ export interface SetupStatus {
   needsSetup: boolean;
 }
 
+export type JobCategory = "KOSMOS" | "SERVER";
+
 export interface ScheduledJob {
   id: string;
   name: string;
   displayName: string;
+  category: JobCategory;
   intervalSeconds: number;
   enabled: boolean;
   running: boolean;
@@ -594,6 +597,17 @@ export interface JobProgressEvent {
 
 export interface JobRun {
   id: string;
+  startedAt: string;
+  finishedAt: string | null;
+  status: string;
+  message: string | null;
+}
+
+/** One row of the Jobs page's global "Recent Activity" section — GET /jobs/runs. */
+export interface RecentJobRun {
+  id: string;
+  jobName: string;
+  jobDisplayName: string;
   startedAt: string;
   finishedAt: string | null;
   status: string;

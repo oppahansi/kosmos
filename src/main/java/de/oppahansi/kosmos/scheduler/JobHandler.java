@@ -27,6 +27,15 @@ public interface JobHandler {
   }
 
   /**
+   * Which section of the Jobs settings page this job groups under. Defaults to {@link
+   * JobCategory#KOSMOS}; the handful of jobs tied to a specific configured Jellyfin/Radarr/Sonarr
+   * server override this to {@link JobCategory#SERVER}.
+   */
+  default JobCategory category() {
+    return JobCategory.KOSMOS;
+  }
+
+  /**
    * Runs the job, reporting progress through {@code progress} if there's anything granular worth
    * showing (most handlers never call it). The returned value (or {@code null}) becomes {@link
    * ScheduledJob#lastMessage} and the {@link JobRun#message} of a successful run. Throw to record a

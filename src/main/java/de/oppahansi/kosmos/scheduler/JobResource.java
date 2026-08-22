@@ -2,6 +2,7 @@ package de.oppahansi.kosmos.scheduler;
 
 import de.oppahansi.kosmos.scheduler.dto.JobProgressEvent;
 import de.oppahansi.kosmos.scheduler.dto.JobRunResponse;
+import de.oppahansi.kosmos.scheduler.dto.RecentJobRunResponse;
 import de.oppahansi.kosmos.scheduler.dto.ScheduledJobResponse;
 import de.oppahansi.kosmos.scheduler.dto.UpdateScheduledJobRequest;
 import io.smallrye.common.annotation.Blocking;
@@ -61,6 +62,19 @@ public class JobResource {
       @PathParam("name") String name, @QueryParam("limit") Integer limit) {
     return jobService.runsFor(name, limit == null ? DEFAULT_RUN_HISTORY : limit).stream()
         .map(JobRunResponse::from)
+        .toList();
+  }
+
+  /**
+   * Most recent runs across every job — scheduled and one-off ({@code TaskRunner}) alike — the
+   * settings page's global "Recent Activity" section. A distinct route from {@link #runs}, not a
+   * collision: {@code /jobs/runs} is one path segment, {@code /jobs/{name}/runs} is two.
+   */
+  @GET
+  @Path("/runs")
+  public List<RecentJobRunResponse> recentRuns(@QueryParam("limit") Integer limit) {
+    return jobService.recentRuns(limit == null ? 10 : limit).stream()
+        .map(RecentJobRunResponse::from)
         .toList();
   }
 

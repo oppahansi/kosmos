@@ -249,6 +249,9 @@ CREATE TABLE scheduled_job (
     last_run_at       TIMESTAMP,
     last_status       VARCHAR(20),
     last_message      VARCHAR(1000),
+    -- KOSMOS or SERVER — see JobHandler#category. Code-owned and refreshed on every claim, same
+    -- treatment as display_name; never user-editable.
+    category          VARCHAR(20) NOT NULL DEFAULT 'KOSMOS',
     -- first-seen order, so the jobs settings page has a stable row order — without one to sort
     -- by, Postgres returns whatever physical order it likes, which can shift on every UPDATE.
     created_at        TIMESTAMP NOT NULL DEFAULT now()
@@ -256,7 +259,15 @@ CREATE TABLE scheduled_job (
 
 CREATE TABLE job_run (
     id                 VARCHAR(36) PRIMARY KEY,
-    scheduled_job_id   VARCHAR(36) NOT NULL REFERENCES scheduled_job(id),
+    -- nullable: null for a TaskRunner-backed one-off run (e.g. a bulk import commit) with no
+    -- backing scheduled_job row at all — see TaskRunner. Non-null for every JobRunner-backed
+    -- recurring job.
+    scheduled_job_id   VARCHAR(36) REFERENCES scheduled_job(id),
+    -- denormalized off scheduled_job.name/display_name at the moment this row is created (same
+    -- convention history_event.title already uses) — a TaskRunner run has no scheduled_job row
+    -- to join to at all, and a run must still read correctly even if a handler is later renamed.
+    job_name           VARCHAR(100) NOT NULL,
+    job_display_name   VARCHAR(200) NOT NULL,
     started_at         TIMESTAMP NOT NULL,
     finished_at        TIMESTAMP,
     status             VARCHAR(20) NOT NULL,

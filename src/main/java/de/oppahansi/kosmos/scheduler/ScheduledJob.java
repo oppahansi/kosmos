@@ -39,6 +39,13 @@ public class ScheduledJob extends KosmosEntity {
   @Column(name = "last_message", length = 1000)
   public String lastMessage;
 
+  /**
+   * {@link JobCategory#name()} — code-owned, refreshed from {@link JobHandler#category()} on every
+   * claim, same treatment {@link #displayName} already gets.
+   */
+  @Column(nullable = false, length = 20)
+  public String category;
+
   /** First-seen order — see {@link JobService#listAll()} for why the settings page sorts by it. */
   @Column(name = "created_at", nullable = false)
   public Instant createdAt;

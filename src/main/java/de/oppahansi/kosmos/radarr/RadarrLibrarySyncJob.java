@@ -1,6 +1,7 @@
 package de.oppahansi.kosmos.radarr;
 
 import de.oppahansi.kosmos.radarr.dto.RadarrLibrarySyncResult;
+import de.oppahansi.kosmos.scheduler.JobCategory;
 import de.oppahansi.kosmos.scheduler.JobHandler;
 import de.oppahansi.kosmos.scheduler.ProgressReporter;
 import java.util.UUID;
@@ -9,7 +10,7 @@ import java.util.UUID;
  * Syncs one configured {@link RadarrServer}'s library. Not a CDI bean — the set of servers is
  * runtime-configurable, so instances are built fresh by {@link RadarrSyncJobs} rather than
  * discovered as a fixed set. Never auto-scheduled (see {@link #autoScheduled}) — the user starts it
- * explicitly, from Settings → Radarr.
+ * explicitly, from Settings → Servers.
  */
 public class RadarrLibrarySyncJob implements JobHandler {
 
@@ -41,6 +42,11 @@ public class RadarrLibrarySyncJob implements JobHandler {
   @Override
   public boolean autoScheduled() {
     return false;
+  }
+
+  @Override
+  public JobCategory category() {
+    return JobCategory.SERVER;
   }
 
   @Override

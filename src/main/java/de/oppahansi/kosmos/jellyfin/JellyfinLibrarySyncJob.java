@@ -1,6 +1,7 @@
 package de.oppahansi.kosmos.jellyfin;
 
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinLibrarySyncResult;
+import de.oppahansi.kosmos.scheduler.JobCategory;
 import de.oppahansi.kosmos.scheduler.JobHandler;
 import de.oppahansi.kosmos.scheduler.ProgressReporter;
 import java.util.UUID;
@@ -9,7 +10,7 @@ import java.util.UUID;
  * Syncs one configured {@link JellyfinServer}'s selected libraries. Not a CDI bean — the set of
  * servers is runtime-configurable, so instances are built fresh by {@link JellyfinSyncJobs} rather
  * than discovered as a fixed set like the download-search {@code JobHandler}s. Never auto-scheduled
- * (see {@link #autoScheduled}) — the user starts it explicitly, from Settings → Jellyfin.
+ * (see {@link #autoScheduled}) — the user starts it explicitly, from Settings → Servers.
  */
 public class JellyfinLibrarySyncJob implements JobHandler {
 
@@ -41,6 +42,11 @@ public class JellyfinLibrarySyncJob implements JobHandler {
   @Override
   public boolean autoScheduled() {
     return false;
+  }
+
+  @Override
+  public JobCategory category() {
+    return JobCategory.SERVER;
   }
 
   @Override

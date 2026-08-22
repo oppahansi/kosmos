@@ -10,7 +10,7 @@ import {
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { api } from "../../api/client";
-import type { JobProgressEvent, JobRun, ScheduledJob } from "../../api/types";
+import type { JobProgressEvent, JobRun, RecentJobRun, ScheduledJob } from "../../api/types";
 import { JobProgressBar } from "../../components/JobProgressBar";
 import { Toggle } from "../../components/Toggle";
 import { useApi } from "../../hooks/useApi";
@@ -34,6 +34,9 @@ function nextRunLabel(job: ScheduledJob): string {
 
 export default function JobsPage() {
   const { data: jobs, setData: setJobs } = useApi(() => api.listJobs(), []);
+  const { data: recentRuns } = useApi(() => api.listRecentJobRuns(10), []);
+  const kosmosJobs = jobs?.filter((j) => j.category !== "SERVER") ?? [];
+  const serverJobs = jobs?.filter((j) => j.category === "SERVER") ?? [];
   const [expandedName, setExpandedName] = useState<string | null>(null);
   const [runningName, setRunningName] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -92,22 +95,66 @@ export default function JobsPage() {
 
       {jobs?.length === 0 && <p className="text-muted">No jobs registered yet.</p>}
 
-      {jobs?.map((job) => (
-        <JobRow
-          key={job.id}
-          job={job}
-          expanded={expandedName === job.name}
-          onToggleExpand={() => setExpandedName((n) => (n === job.name ? null : job.name))}
-          onToggleEnabled={(enabled) => toggleEnabled(job, enabled)}
-          onRunNow={() => runNow(job)}
-          running={runningName === job.name}
-          onSaved={(updated) => {
-            patchJob(job.name, updated);
-            showToast(`${job.displayName}'s interval saved`);
-          }}
-          onLiveUpdate={(updated) => patchJob(job.name, updated)}
-        />
-      ))}
+      {kosmosJobs.length > 0 && (
+        <>
+          <div className="section-label" style={{ marginTop: 8, marginBottom: 10 }}>
+            Kosmos Jobs
+          </div>
+          {kosmosJobs.map((job) => (
+            <JobRow
+              key={job.id}
+              job={job}
+              expanded={expandedName === job.name}
+              onToggleExpand={() => setExpandedName((n) => (n === job.name ? null : job.name))}
+              onToggleEnabled={(enabled) => toggleEnabled(job, enabled)}
+              onRunNow={() => runNow(job)}
+              running={runningName === job.name}
+              onSaved={(updated) => {
+                patchJob(job.name, updated);
+                showToast(`${job.displayName}'s interval saved`);
+              }}
+              onLiveUpdate={(updated) => patchJob(job.name, updated)}
+            />
+          ))}
+        </>
+      )}
+
+      {serverJobs.length > 0 && (
+        <>
+          <div className="section-label" style={{ marginTop: 28, marginBottom: 10 }}>
+            Server Jobs
+          </div>
+          {serverJobs.map((job) => (
+            <JobRow
+              key={job.id}
+              job={job}
+              expanded={expandedName === job.name}
+              onToggleExpand={() => setExpandedName((n) => (n === job.name ? null : job.name))}
+              onToggleEnabled={(enabled) => toggleEnabled(job, enabled)}
+              onRunNow={() => runNow(job)}
+              running={runningName === job.name}
+              onSaved={(updated) => {
+                patchJob(job.name, updated);
+                showToast(`${job.displayName}'s interval saved`);
+              }}
+              onLiveUpdate={(updated) => patchJob(job.name, updated)}
+            />
+          ))}
+        </>
+      )}
+
+      {recentRuns && recentRuns.length > 0 && (
+        <>
+          <div className="section-label" style={{ marginTop: 28, marginBottom: 10 }}>
+            Recent Activity
+          </div>
+          <div className="history-table">
+            {recentRuns.map((run) => (
+              <JobRunRow key={run.id} run={run} jobDisplayName={run.jobDisplayName} />
+            ))}
+          </div>
+        </>
+      )}
 
       {toast && (
         <div className="toast">
@@ -274,7 +321,7 @@ function JobRow({
   );
 }
 
-function JobRunRow({ run }: { run: JobRun }) {
+function JobRunRow({ run, jobDisplayName }: { run: JobRun; jobDisplayName?: string }) {
   const failed = run.status === "FAILED";
   return (
     <div className="history-row" style={{ gridTemplateColumns: "auto 1fr auto auto" }}>
@@ -288,7 +335,10 @@ function JobRunRow({ run }: { run: JobRun }) {
         {failed ? <Warning size={14} /> : <CheckCircle size={14} />}
       </span>
       <div style={{ minWidth: 0 }}>
-        <div className="history-row-title">{run.status === "SUCCESS" ? "Succeeded" : "Failed"}</div>
+        <div className="history-row-title">
+          {jobDisplayName ? `${jobDisplayName} — ` : ""}
+          {run.status === "SUCCESS" ? "Succeeded" : "Failed"}
+        </div>
         {run.message && <div className="history-row-release">{run.message}</div>}
       </div>
       <span className="text-faint" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>

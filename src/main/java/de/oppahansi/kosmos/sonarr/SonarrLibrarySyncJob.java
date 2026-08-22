@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.sonarr;
 
+import de.oppahansi.kosmos.scheduler.JobCategory;
 import de.oppahansi.kosmos.scheduler.JobHandler;
 import de.oppahansi.kosmos.scheduler.ProgressReporter;
 import de.oppahansi.kosmos.sonarr.dto.SonarrLibrarySyncResult;
@@ -9,7 +10,7 @@ import java.util.UUID;
  * Syncs one configured {@link SonarrServer}'s library. Not a CDI bean — the set of servers is
  * runtime-configurable, so instances are built fresh by {@link SonarrSyncJobs} rather than
  * discovered as a fixed set. Never auto-scheduled (see {@link #autoScheduled}) — the user starts it
- * explicitly, from Settings → Sonarr.
+ * explicitly, from Settings → Servers.
  */
 public class SonarrLibrarySyncJob implements JobHandler {
 
@@ -41,6 +42,11 @@ public class SonarrLibrarySyncJob implements JobHandler {
   @Override
   public boolean autoScheduled() {
     return false;
+  }
+
+  @Override
+  public JobCategory category() {
+    return JobCategory.SERVER;
   }
 
   @Override

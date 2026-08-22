@@ -45,6 +45,17 @@ public class JobService {
   }
 
   /**
+   * Most recent runs across every job — scheduled and one-off ({@link TaskRunner}) alike — for the
+   * Jobs settings page's global history section. Unlike {@link #runsFor}, this needs no join back
+   * to {@link ScheduledJob}: every {@link JobRun} already carries its own denormalized name/label.
+   */
+  public List<JobRun> recentRuns(int limit) {
+    return JobRun.<JobRun>find("order by startedAt desc")
+        .page(0, Math.min(limit, DEFAULT_RUN_HISTORY_LIMIT))
+        .list();
+  }
+
+  /**
    * The {@link JobHandler} registered for {@code name}, if any — {@link JobResource} 404s when it
    * isn't.
    */

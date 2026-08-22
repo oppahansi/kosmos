@@ -1,6 +1,7 @@
 package de.oppahansi.kosmos.jellyfin;
 
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinUserSyncResult;
+import de.oppahansi.kosmos.scheduler.JobCategory;
 import de.oppahansi.kosmos.scheduler.JobHandler;
 import de.oppahansi.kosmos.scheduler.ProgressReporter;
 import java.util.UUID;
@@ -39,6 +40,11 @@ public class JellyfinUserImportJob implements JobHandler {
   @Override
   public boolean autoScheduled() {
     return false;
+  }
+
+  @Override
+  public JobCategory category() {
+    return JobCategory.SERVER;
   }
 
   @Override

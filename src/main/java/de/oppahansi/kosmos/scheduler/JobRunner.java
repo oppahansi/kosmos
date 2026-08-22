@@ -51,32 +51,25 @@ public class JobRunner {
     progressBroadcaster.publish(jobName, JobProgressEvent.started());
 
     Instant startedAt = Instant.now();
-    String status;
-    String message;
-    try {
-      message =
-          handler.run(
-              (current, total, msg) ->
-                  progressBroadcaster.publish(
-                      jobName, JobProgressEvent.progress(current, total, msg)));
-      status = "SUCCESS";
-    } catch (RuntimeException e) {
-      status = "FAILED";
-      message = e.getMessage();
-    }
+    JobRunOutcome.Result result =
+        JobRunOutcome.of(
+            () ->
+                handler.run(
+                    (current, total, msg) ->
+                        progressBroadcaster.publish(
+                            jobName, JobProgressEvent.progress(current, total, msg))));
 
-    String finalStatus = status;
-    String finalMessage = message;
-    JobRun jobRun =
-        QuarkusTransaction.requiringNew()
-            .call(() -> finish(jobId, startedAt, finalStatus, finalMessage));
+    JobRun jobRun = QuarkusTransaction.requiringNew().call(() -> finish(jobId, startedAt, result));
 
-    progressBroadcaster.publish(jobName, JobProgressEvent.finished(finalStatus, finalMessage));
+    progressBroadcaster.publish(
+        jobName, JobProgressEvent.finished(result.status(), result.message()));
 
-    if ("FAILED".equals(status)) {
+    if ("FAILED".equals(result.status())) {
       notificationService.notifyAll(
           "Job failed",
-          handler.displayName() + " failed" + (message != null ? ": " + message : "."));
+          handler.displayName()
+              + " failed"
+              + (result.message() != null ? ": " + result.message() : "."));
     }
     return jobRun;
   }
@@ -91,19 +84,21 @@ public class JobRunner {
     return job;
   }
 
-  private JobRun finish(UUID jobId, Instant startedAt, String status, String message) {
+  private JobRun finish(UUID jobId, Instant startedAt, JobRunOutcome.Result result) {
     ScheduledJob job = ScheduledJob.<ScheduledJob>findById(jobId);
     job.runningSince = null;
     job.lastRunAt = startedAt;
-    job.lastStatus = status;
-    job.lastMessage = message;
+    job.lastStatus = result.status();
+    job.lastMessage = result.message();
 
     JobRun jobRun = new JobRun();
     jobRun.scheduledJob = job;
+    jobRun.jobName = job.name;
+    jobRun.jobDisplayName = job.displayName;
     jobRun.startedAt = startedAt;
     jobRun.finishedAt = Instant.now();
-    jobRun.status = status;
-    jobRun.message = message;
+    jobRun.status = result.status();
+    jobRun.message = result.message();
     jobRun.persist();
     return jobRun;
   }
@@ -114,13 +109,15 @@ public class JobRunner {
     if (existing.isPresent()) {
       ScheduledJob job = existing.get();
       // Code-owned, unlike intervalSeconds/enabled which the user can edit — always kept in sync
-      // so a handler rename doesn't leave a stale label in the DB.
+      // so a handler rename (or a category change) doesn't leave a stale value in the DB.
       job.displayName = handler.displayName();
+      job.category = handler.category().name();
       return job;
     }
     ScheduledJob job = new ScheduledJob();
     job.name = handler.jobName();
     job.displayName = handler.displayName();
+    job.category = handler.category().name();
     job.intervalSeconds = handler.defaultIntervalSeconds();
     job.enabled = handler.autoScheduled();
     job.createdAt = Instant.now();

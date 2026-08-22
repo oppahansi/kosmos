@@ -5,12 +5,14 @@ import de.oppahansi.kosmos.library.dto.CommitImportResult;
 import de.oppahansi.kosmos.library.dto.ImportCandidate;
 import de.oppahansi.kosmos.library.dto.ImportScanRequest;
 import de.oppahansi.kosmos.media.MediaItem;
+import de.oppahansi.kosmos.scheduler.TaskRunner;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -26,6 +28,7 @@ public class BulkImportResource {
 
   @Inject ImportMatchService importMatchService;
   @Inject ImportService importService;
+  @Inject TaskRunner taskRunner;
 
   @POST
   @Path("/scan")
@@ -35,12 +38,24 @@ public class BulkImportResource {
 
   /**
    * Each item imports (and, on failure, fails) independently — {@link ImportService#importPath} is
-   * itself transactional per call, so one bad path in a batch never touches the rest.
+   * itself transactional per call, so one bad path in a batch never touches the rest. Runs through
+   * {@link TaskRunner} purely for Jobs-page visibility (a real {@link
+   * de.oppahansi.kosmos.scheduler.JobRun} row) — still fully synchronous within the request, same
+   * as before; the response shape is unchanged.
    */
   @POST
   @Path("/commit")
   public List<CommitImportResult> commit(CommitImportRequest request) {
-    return request.items().stream().map(this::commitOne).toList();
+    List<CommitImportResult> results = new ArrayList<>();
+    taskRunner.run(
+        "bulk-import",
+        "Bulk Import",
+        () -> {
+          request.items().forEach(item -> results.add(commitOne(item)));
+          long ok = results.stream().filter(CommitImportResult::success).count();
+          return ok + "/" + results.size() + " imported";
+        });
+    return results;
   }
 
   private CommitImportResult commitOne(CommitImportRequest.Item item) {

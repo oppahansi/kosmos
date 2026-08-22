@@ -49,6 +49,7 @@ import type {
   QualityDefinition,
   QualityProfile,
   RadarrServer,
+  RecentJobRun,
   RefreshScanResult,
   RegistryEntry,
   ScheduledJob,
@@ -692,6 +693,8 @@ export const api = {
 
   listJobRuns: (name: string, limit = 20) =>
     request<JobRun[]>(`/jobs/${encodeURIComponent(name)}/runs?limit=${limit}`),
+
+  listRecentJobRuns: (limit = 10) => request<RecentJobRun[]>(`/jobs/runs?limit=${limit}`),
 
   runJobNow: (name: string) => request<JobRun>(`/jobs/${encodeURIComponent(name)}/run`, { method: "POST" }),
 
