@@ -86,18 +86,31 @@ public class PersistentCacheService {
     return Optional.of(entry.value);
   }
 
+  /**
+   * A bulk UPDATE first, INSERT only on a miss — not a find-then-persist on a managed entity.
+   * {@link CacheCleanupJob} deletes expired rows concurrently with ordinary traffic; a find-then-
+   * persist on an entity that gets deleted out from under it between the find and the flush throws
+   * {@code OptimisticLockException} (a real failure this project's own test suite caught once
+   * per-test runtime grew past the scheduler's tick interval). A bulk update can't hit that — it
+   * either matches a row or it doesn't, with no managed-entity flush to race.
+   */
   @Transactional
   void store(String cacheName, String key, String json, Instant expiresAt) {
-    CacheEntry entry =
-        CacheEntry.find("cacheName = ?1 and cacheKey = ?2", cacheName, key).firstResult();
-    if (entry == null) {
-      entry = new CacheEntry();
+    long updated =
+        CacheEntry.update(
+            "value = ?1, expiresAt = ?2 where cacheName = ?3 and cacheKey = ?4",
+            json,
+            expiresAt,
+            cacheName,
+            key);
+    if (updated == 0) {
+      CacheEntry entry = new CacheEntry();
       entry.cacheName = cacheName;
       entry.cacheKey = key;
+      entry.value = json;
+      entry.expiresAt = expiresAt;
+      entry.persist();
     }
-    entry.value = json;
-    entry.expiresAt = expiresAt;
-    entry.persist();
   }
 
   /** {@link de.oppahansi.kosmos.scheduler.JobHandler}-driven housekeeping — see CacheCleanupJob. */
