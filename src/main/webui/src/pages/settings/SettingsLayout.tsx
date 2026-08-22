@@ -13,9 +13,7 @@ const TABS = [
   { to: "/settings/jobs", label: "Jobs" },
   { to: "/settings/health", label: "Health" },
   { to: "/settings/backup", label: "Backup" },
-  { to: "/settings/jellyfin", label: "Jellyfin" },
-  { to: "/settings/radarr", label: "Radarr" },
-  { to: "/settings/sonarr", label: "Sonarr" },
+  { to: "/settings/servers", label: "Servers" },
   { to: "/settings/users", label: "Users" },
   { to: "/settings/permissions", label: "Permissions" },
 ];

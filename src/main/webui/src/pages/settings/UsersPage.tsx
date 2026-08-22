@@ -40,7 +40,7 @@ export default function UsersPage() {
       <div className="info-banner">
         <Info size={16} />
         Connecting and syncing a Jellyfin server (including its user accounts) happens under{" "}
-        <Link to="/settings/jellyfin">Settings → Jellyfin</Link> — the server's own admin account
+        <Link to="/settings/servers">Settings → Servers</Link> — the server's own admin account
         automatically becomes a Kosmos admin, no manual step needed.
       </div>
 

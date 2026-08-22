@@ -249,8 +249,7 @@ function EmptyLibrary({ noun }: { noun: string }) {
         </div>
         <p className="text-faint" style={{ marginTop: 20, fontSize: 12 }}>
           Already have a folder full of media? <Link to="/import">Match it against your library</Link>, or import
-          it straight from <Link to="/settings/jellyfin">Jellyfin</Link>,{" "}
-          <Link to="/settings/radarr">Radarr</Link>, or <Link to="/settings/sonarr">Sonarr</Link>.
+          it straight from <Link to="/settings/servers">Jellyfin, Radarr, or Sonarr</Link>.
         </p>
       </div>
     </div>

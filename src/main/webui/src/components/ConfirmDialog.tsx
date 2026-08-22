@@ -4,8 +4,8 @@ import { useState } from "react";
 /**
  * Generic destructive-action confirmation — replaces the app's only prior confirm pattern (a bare
  * `window.confirm` in BackupPage) with a real dialog matching the `.dialog`/`.dialog-backdrop`
- * modal convention every other modal in the app already uses (see e.g. JellyfinPage's Add Server
- * modal). Shared by any delete action rather than each screen inventing its own.
+ * modal convention every other modal in the app already uses (see e.g. AddServerModal). Shared by
+ * any delete action rather than each screen inventing its own.
  */
 export function ConfirmDialog({
   title,
