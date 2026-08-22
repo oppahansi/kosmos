@@ -4,6 +4,7 @@ import {
   CheckIcon as Check,
   ClockIcon as Clock,
   DotsThreeIcon as DotsThree,
+  FolderOpenIcon as FolderOpen,
   ListBulletsIcon as ListBullets,
   MagnifyingGlassIcon as MagnifyingGlass,
   MedalIcon as Medal,
@@ -233,19 +234,22 @@ function EmptyLibrary({ noun }: { noun: string }) {
         </div>
         <div className="empty-state-title">Your library is empty</div>
         <p className="empty-state-body">
-          Add a movie, series, or anime from Discover or Search and it'll show up here once it's on disk.
+          First, tell Kosmos where your media lives — then add a movie, series, or anime from Discover or
+          Search and it'll land there once it's on disk.
         </p>
         <div className="empty-state-actions">
-          <Link to="/" className="btn btn-hero">
+          <Link to="/settings/root-folders" className="btn btn-hero">
+            <FolderOpen size={15} />
+            Add a Media Folder
+          </Link>
+          <Link to="/" className="btn btn-secondary">
             <SquaresFour size={15} />
             Discover {noun}
           </Link>
-          <button type="button" className="btn btn-secondary" disabled title="Coming soon">
-            Scan a folder
-          </button>
         </div>
         <p className="text-faint" style={{ marginTop: 20, fontSize: 12 }}>
-          Coming from Radarr? <strong>Import your existing library</strong> instead.
+          Already have a folder full of media? <Link to="/import">Match it against your library</Link>, or if
+          Jellyfin already scanned it, <Link to="/settings/jellyfin">sync from Jellyfin</Link> instead.
         </p>
       </div>
     </div>
