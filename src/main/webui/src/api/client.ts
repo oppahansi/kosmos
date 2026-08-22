@@ -133,6 +133,15 @@ export const api = {
 
   listMovieLibraryFiles: (id: string) => request<LibraryFile[]>(`/movies/${id}/library-files`),
 
+  deleteLibraryFile: (id: string, deleteFromDisk: boolean) =>
+    request<void>(`/library-files/${id}?deleteFromDisk=${deleteFromDisk}`, { method: "DELETE" }),
+
+  rematchLibraryFile: (id: string, mediaItemId: string) =>
+    request<LibraryFile>(`/library-files/${id}/media-item`, {
+      method: "PUT",
+      body: JSON.stringify({ mediaItemId }),
+    }),
+
   deleteMovie: (id: string, deleteFiles: boolean) =>
     request<void>(`/movies/${id}?deleteFiles=${deleteFiles}`, { method: "DELETE" }),
 

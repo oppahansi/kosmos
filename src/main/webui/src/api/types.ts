@@ -462,8 +462,12 @@ export interface LibraryFile {
   path: string;
   sizeBytes: number;
   matchMethod: string;
+  matchConfidence: number;
+  matchPinned: boolean;
   importedAt: string;
   verified: boolean;
+  probedAt: string | null;
+  embeddedTitle: string | null;
   container: string | null;
   videoCodec: string | null;
   resolutionWidth: number | null;

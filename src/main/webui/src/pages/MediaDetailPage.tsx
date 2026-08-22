@@ -1,5 +1,6 @@
 import {
   CheckCircleIcon as CheckCircle,
+  FolderOpenIcon as FolderOpen,
   ListMagnifyingGlassIcon as ListMagnifyingGlass,
   MagnifyingGlassIcon as MagnifyingGlass,
   PlayCircleIcon as PlayCircle,
@@ -19,6 +20,7 @@ import { ConfirmDialog } from "../components/ConfirmDialog";
 import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
 import { GroupedEpisodeList, type SeasonRowData } from "../components/detail/EpisodeList";
 import { FileStatusCard } from "../components/detail/FileStatusCard";
+import { ManageFilesDialog } from "../components/detail/ManageFilesDialog";
 import { MoreActionsMenu } from "../components/detail/MoreActionsMenu";
 import { QualityProfileDropdown } from "../components/detail/QualityProfileDropdown";
 import { SeriesMonitoringDropdown } from "../components/detail/SeriesMonitoringDropdown";
@@ -88,6 +90,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     ownedError,
     extras,
     libraryFiles,
+    reloadLibraryFiles,
     profiles,
     preview,
     previewLoading,
@@ -102,6 +105,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
   const navigate = useNavigate();
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteFiles, setDeleteFiles] = useState(false);
+  const [manageFilesOpen, setManageFilesOpen] = useState(false);
 
   async function confirmDelete() {
     if (!ownedMedia) return;
@@ -343,6 +347,15 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                   {admin && (
                     <MoreActionsMenu
                       actions={[
+                        ...(libraryFiles.length > 0
+                          ? [
+                              {
+                                label: "Manage Files",
+                                icon: <FolderOpen size={14} />,
+                                onClick: () => setManageFilesOpen(true),
+                              },
+                            ]
+                          : []),
                         {
                           label: "Delete Movie",
                           icon: <Trash size={14} />,
@@ -489,6 +502,14 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
           }
           onConfirm={confirmDelete}
           onCancel={() => setDeleteOpen(false)}
+        />
+      )}
+
+      {manageFilesOpen && (
+        <ManageFilesDialog
+          files={libraryFiles}
+          onClose={() => setManageFilesOpen(false)}
+          onChanged={reloadLibraryFiles}
         />
       )}
     </div>

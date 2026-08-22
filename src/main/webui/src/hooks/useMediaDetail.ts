@@ -97,7 +97,7 @@ export function useMediaDetail(kind: MediaKind) {
     [kind, id],
   );
   const { data: extras } = useApi(() => (id ? fetchExtras(kind, id) : Promise.resolve(null)), [kind, id]);
-  const { data: libraryFiles } = useApi(
+  const { data: libraryFiles, reload: reloadLibraryFiles } = useApi(
     () => (kind === "movie" && id ? api.listMovieLibraryFiles(id) : Promise.resolve([])),
     [kind, id],
   );
@@ -145,6 +145,7 @@ export function useMediaDetail(kind: MediaKind) {
     ownedError,
     extras,
     libraryFiles: libraryFiles ?? [],
+    reloadLibraryFiles,
     profiles,
     preview,
     previewLoading,
