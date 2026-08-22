@@ -3,6 +3,7 @@ package de.oppahansi.kosmos.plugins;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.oppahansi.kosmos.cache.PersistentCache;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.IOException;
@@ -33,6 +34,7 @@ public class PluginRegistryClient {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @CacheResult(cacheName = "plugin-registry")
+  @PersistentCache
   public List<RegistryEntry> listEntries() {
     ContentItem[] files = fetchJson(contentsUrl, ContentItem[].class);
     List<RegistryEntry> entries = new ArrayList<>();

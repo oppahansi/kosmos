@@ -1,6 +1,7 @@
 package de.oppahansi.kosmos.metadata.thexem;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.oppahansi.kosmos.cache.PersistentCache;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.IOException;
@@ -58,6 +59,7 @@ public class TheXemMappingProvider {
   }
 
   @CacheResult(cacheName = "thexem-anidb-map")
+  @PersistentCache
   List<TheXemEntry> loadMap(int anidbId) {
     try {
       HttpRequest request =

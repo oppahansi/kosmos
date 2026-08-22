@@ -1,6 +1,7 @@
 package de.oppahansi.kosmos.metadata.anilist;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.oppahansi.kosmos.cache.PersistentCache;
 import de.oppahansi.kosmos.metadata.MetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchItem;
@@ -149,6 +150,7 @@ public class AniListMetadataProvider implements MetadataProvider {
    */
   @Override
   @CacheResult(cacheName = "anilist-search")
+  @PersistentCache
   public List<MetadataSearchResult> search(String query) {
     AniListSearchResponse response =
         post(SEARCH_QUERY, Map.of("search", query), AniListSearchResponse.class);
@@ -166,6 +168,7 @@ public class AniListMetadataProvider implements MetadataProvider {
    * that gap by cross-referencing to a TVDB entry that actually has one.
    */
   @CacheResult(cacheName = "anilist-media")
+  @PersistentCache
   public Optional<AniListAnimeDetails> fetchById(String externalId) {
     AniListMediaResponse response =
         post(BY_ID_QUERY, Map.of("id", Integer.valueOf(externalId)), AniListMediaResponse.class);
@@ -223,6 +226,7 @@ public class AniListMetadataProvider implements MetadataProvider {
    * MediaDetailExtras.cast()} is always empty for anime.
    */
   @CacheResult(cacheName = "anilist-detail-extras")
+  @PersistentCache
   public Optional<MediaDetailExtras> fetchDetailExtras(String externalId) {
     AniListMediaResponse response =
         post(

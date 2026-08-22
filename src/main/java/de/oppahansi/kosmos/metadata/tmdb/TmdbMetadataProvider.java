@@ -2,6 +2,7 @@ package de.oppahansi.kosmos.metadata.tmdb;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.oppahansi.kosmos.cache.PersistentCache;
 import de.oppahansi.kosmos.metadata.MetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchItem;
@@ -93,6 +94,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    */
   @Override
   @CacheResult(cacheName = "tmdb-search-movie")
+  @PersistentCache
   public List<MetadataSearchResult> search(String query) {
     if (apiKey.isEmpty()) {
       throw new IllegalStateException("kosmos.metadata.tmdb.api-key is not configured");
@@ -116,6 +118,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * than trusting the top result blindly.
    */
   @CacheResult(cacheName = "tmdb-movie-search-by-year")
+  @PersistentCache
   public Optional<MetadataSearchResult> searchMovieByTitleAndYear(String title, int year) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
@@ -150,6 +153,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * {@link #search}: this is far more static than search results.
    */
   @CacheResult(cacheName = "tmdb-movie-details")
+  @PersistentCache
   public Optional<TmdbMovieDetails> fetchMovieDetails(String tmdbId) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
@@ -181,6 +185,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * Backs {@code MovieCollectionService} — a collection's full member list, TMDB's own grouping.
    */
   @CacheResult(cacheName = "tmdb-collection")
+  @PersistentCache
   public Optional<TmdbCollectionResult> fetchCollection(String collectionId) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
@@ -217,6 +222,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * fields {@link TmdbMovie} ignores, just unwrapped (a single object, not a {@code results} list).
    */
   @CacheResult(cacheName = "tmdb-movie-by-id")
+  @PersistentCache
   public Optional<MetadataSearchResult> fetchMovieById(String tmdbId) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
@@ -245,6 +251,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * poster/backdrop/overview {@link #fetchShowStructure} doesn't carry.
    */
   @CacheResult(cacheName = "tmdb-show-by-id")
+  @PersistentCache
   public Optional<MetadataSearchResult> fetchShowById(String tmdbId) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
@@ -274,6 +281,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * covers the rest without requiring a whole separate id-mapping dataset).
    */
   @CacheResult(cacheName = "tmdb-find-by-tvdb")
+  @PersistentCache
   public Optional<String> findTvIdByTvdbId(String tvdbId) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
@@ -314,6 +322,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * rescue an otherwise-ambiguous match, never to reject one.
    */
   @CacheResult(cacheName = "tmdb-tv-anime-keyword")
+  @PersistentCache
   public boolean showHasAnimeKeyword(String tmdbId) {
     if (apiKey.isEmpty()) {
       return false;
@@ -353,6 +362,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * /recommendations}, {@code /release_dates} each require their own request otherwise).
    */
   @CacheResult(cacheName = "tmdb-movie-detail-extras")
+  @PersistentCache
   public Optional<MediaDetailExtras> fetchMovieDetailExtras(String tmdbId) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
@@ -383,6 +393,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
 
   /** Show-detail counterpart to {@link #fetchMovieDetailExtras}. */
   @CacheResult(cacheName = "tmdb-tv-detail-extras")
+  @PersistentCache
   public Optional<MediaDetailExtras> fetchTvDetailExtras(String tmdbId) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
@@ -575,6 +586,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * so a movie-only cache hit can't accidentally short-circuit the TV results for the same query.
    */
   @CacheResult(cacheName = "tmdb-search-tv")
+  @PersistentCache
   public List<MetadataSearchResult> searchTv(String query) {
     if (apiKey.isEmpty()) {
       throw new IllegalStateException("kosmos.metadata.tmdb.api-key is not configured");
@@ -614,6 +626,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * what make a *retry after failure* cheap.
    */
   @CacheResult(cacheName = "tmdb-show-structure")
+  @PersistentCache
   public TmdbShowStructure fetchShowStructure(String tmdbId) {
     if (apiKey.isEmpty()) {
       throw new IllegalStateException("kosmos.metadata.tmdb.api-key is not configured");

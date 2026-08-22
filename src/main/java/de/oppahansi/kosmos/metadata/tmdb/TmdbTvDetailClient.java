@@ -1,6 +1,7 @@
 package de.oppahansi.kosmos.metadata.tmdb;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.oppahansi.kosmos.cache.PersistentCache;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.IOException;
@@ -39,6 +40,7 @@ class TmdbTvDetailClient {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @CacheResult(cacheName = "tmdb-show-details")
+  @PersistentCache
   TmdbTvDetails fetchTvDetails(String tmdbId) {
     try {
       HttpRequest request =
@@ -58,6 +60,7 @@ class TmdbTvDetailClient {
   }
 
   @CacheResult(cacheName = "tmdb-season-episodes")
+  @PersistentCache
   List<TmdbShowStructure.EpisodeData> fetchSeasonEpisodes(String tmdbId, int seasonNumber) {
     try {
       HttpRequest request =

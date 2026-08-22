@@ -522,3 +522,15 @@ CREATE TABLE history_event (
 );
 CREATE INDEX idx_history_event_media_item ON history_event(media_item_id);
 CREATE INDEX idx_history_event_occurred_at ON history_event(occurred_at);
+
+-- L2 cache behind the Caffeine-backed @CacheResult L1 every metadata-provider method already
+-- carries — see PersistentCacheService's own doc comment.
+CREATE TABLE cache_entry (
+    id          VARCHAR(36) PRIMARY KEY,
+    cache_name  VARCHAR(100) NOT NULL,
+    cache_key   VARCHAR(2000) NOT NULL,
+    value       JSONB NOT NULL,
+    expires_at  TIMESTAMP NOT NULL
+);
+CREATE UNIQUE INDEX idx_cache_entry_name_key ON cache_entry(cache_name, cache_key);
+CREATE INDEX idx_cache_entry_expires_at ON cache_entry(expires_at);

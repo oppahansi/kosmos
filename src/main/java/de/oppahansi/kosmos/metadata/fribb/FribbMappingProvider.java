@@ -2,6 +2,7 @@ package de.oppahansi.kosmos.metadata.fribb;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.oppahansi.kosmos.cache.PersistentCache;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.io.IOException;
@@ -37,6 +38,7 @@ public class FribbMappingProvider {
   private final ObjectMapper objectMapper = new ObjectMapper();
 
   @CacheResult(cacheName = "fribb-mapping")
+  @PersistentCache
   public Map<Integer, FribbEntry> loadMapping() {
     try {
       HttpRequest request = HttpRequest.newBuilder().uri(URI.create(MAPPING_URL)).GET().build();
@@ -66,6 +68,7 @@ public class FribbMappingProvider {
    * reverse index on every call once {@link #loadMapping} is warm.
    */
   @CacheResult(cacheName = "fribb-by-tmdb-tv")
+  @PersistentCache
   public Map<Integer, FribbEntry> loadMappingByTmdbTvId() {
     Map<Integer, FribbEntry> byTmdbTvId = new LinkedHashMap<>();
     for (FribbEntry entry : loadMapping().values()) {

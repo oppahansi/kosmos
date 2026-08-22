@@ -2,6 +2,7 @@ package de.oppahansi.kosmos.metadata.tmdb;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.oppahansi.kosmos.cache.PersistentCache;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -56,6 +57,7 @@ public class TmdbDiscoverClient {
    * TMDB's own {@code /trending/movie/{window}}, {@code window} being {@code day} or {@code week}.
    */
   @CacheResult(cacheName = "tmdb-trending")
+  @PersistentCache
   public List<MetadataSearchResult> fetchTrendingMovies(
       String window, int page, String excludeLanguages) {
     return fetchMoviesFiltered(
@@ -69,6 +71,7 @@ public class TmdbDiscoverClient {
    * Backs the "Trending" list page's "Series" filter — same idea as {@link #fetchTrendingMovies}.
    */
   @CacheResult(cacheName = "tmdb-trending-tv")
+  @PersistentCache
   public List<MetadataSearchResult> fetchTrendingTv(
       String window, int page, String excludeLanguages) {
     return fetchTvFiltered(
@@ -87,6 +90,7 @@ public class TmdbDiscoverClient {
    * #parseTrendingAll}.
    */
   @CacheResult(cacheName = "tmdb-trending-all")
+  @PersistentCache
   public List<MetadataSearchResult> fetchTrendingAll(
       String window, int page, String excludeLanguages) {
     if (apiKey.isEmpty()) {
@@ -171,6 +175,7 @@ public class TmdbDiscoverClient {
    * page's infinite scroll and language filter.
    */
   @CacheResult(cacheName = "tmdb-popular")
+  @PersistentCache
   public List<MetadataSearchResult> fetchPopularMovies(int page, String excludeLanguages) {
     return fetchMoviesFiltered(
         POPULAR_URL, "page=" + page, excludeLanguages, "TMDB popular fetch failed");
@@ -181,6 +186,7 @@ public class TmdbDiscoverClient {
    * scroll and language filter — TMDB's own {@code /movie/upcoming}.
    */
   @CacheResult(cacheName = "tmdb-upcoming-movies")
+  @PersistentCache
   public List<MetadataSearchResult> fetchUpcomingMovies(int page, String excludeLanguages) {
     return fetchMoviesFiltered(
         UPCOMING_MOVIES_URL, "page=" + page, excludeLanguages, "TMDB upcoming movies fetch failed");
@@ -191,6 +197,7 @@ public class TmdbDiscoverClient {
    * scroll and language filter.
    */
   @CacheResult(cacheName = "tmdb-popular-tv")
+  @PersistentCache
   public List<MetadataSearchResult> fetchPopularTv(int page, String excludeLanguages) {
     return fetchTvFiltered(
         POPULAR_TV_URL, "page=" + page, excludeLanguages, "TMDB popular TV fetch failed");
@@ -208,6 +215,7 @@ public class TmdbDiscoverClient {
    * titles until it collects {@link #UPCOMING_TV_TARGET_COUNT} of them.
    */
   @CacheResult(cacheName = "tmdb-upcoming-tv")
+  @PersistentCache
   public List<MetadataSearchResult> fetchUpcomingTv(String excludeLanguages) {
     String extraParams = "sort_by=first_air_date.asc&first_air_date.gte=" + LocalDate.now();
     List<MetadataSearchResult> collected = new ArrayList<>();
@@ -240,6 +248,7 @@ public class TmdbDiscoverClient {
    * other paginated list here; TMDB genuinely doesn't have art for everything this query surfaces.
    */
   @CacheResult(cacheName = "tmdb-upcoming-tv-paged")
+  @PersistentCache
   public List<MetadataSearchResult> fetchUpcomingTv(int page, String excludeLanguages) {
     String extraParams =
         "sort_by=first_air_date.asc&first_air_date.gte=" + LocalDate.now() + "&page=" + page;
@@ -249,12 +258,14 @@ public class TmdbDiscoverClient {
 
   /** Backs Discover/Home's "Movie Genres" tile row — the fixed TMDB genre vocabulary for movies. */
   @CacheResult(cacheName = "tmdb-movie-genres")
+  @PersistentCache
   public List<TmdbGenre> fetchMovieGenres() {
     return fetchGenres(MOVIE_GENRES_URL, "TMDB movie genre list fetch failed");
   }
 
   /** Backs Discover/Home's "Series Genres" tile row — the fixed TMDB genre vocabulary for TV. */
   @CacheResult(cacheName = "tmdb-tv-genres")
+  @PersistentCache
   public List<TmdbGenre> fetchTvGenres() {
     return fetchGenres(TV_GENRES_URL, "TMDB TV genre list fetch failed");
   }
@@ -282,6 +293,7 @@ public class TmdbDiscoverClient {
    * tagged with the given TMDB genre id.
    */
   @CacheResult(cacheName = "tmdb-discover-movie-genre")
+  @PersistentCache
   public List<MetadataSearchResult> discoverMoviesByGenre(
       int genreId, int page, String excludeLanguages) {
     return fetchMoviesFiltered(
@@ -296,6 +308,7 @@ public class TmdbDiscoverClient {
    * tagged with the given TMDB genre id.
    */
   @CacheResult(cacheName = "tmdb-discover-tv-genre")
+  @PersistentCache
   public List<MetadataSearchResult> discoverTvByGenre(
       int genreId, int page, String excludeLanguages) {
     return fetchTvFiltered(
@@ -310,6 +323,7 @@ public class TmdbDiscoverClient {
    * produced by the given TMDB company id.
    */
   @CacheResult(cacheName = "tmdb-discover-movie-company")
+  @PersistentCache
   public List<MetadataSearchResult> discoverMoviesByCompany(
       int companyId, int page, String excludeLanguages) {
     return fetchMoviesFiltered(
@@ -324,6 +338,7 @@ public class TmdbDiscoverClient {
    * airing on the given TMDB network id.
    */
   @CacheResult(cacheName = "tmdb-discover-tv-network")
+  @PersistentCache
   public List<MetadataSearchResult> discoverTvByNetwork(
       int networkId, int page, String excludeLanguages) {
     return fetchTvFiltered(
@@ -399,6 +414,7 @@ public class TmdbDiscoverClient {
    * which movie in the library it's computed from.
    */
   @CacheResult(cacheName = "tmdb-movie-recommendations")
+  @PersistentCache
   public List<MetadataSearchResult> fetchMovieRecommendations(String tmdbId) {
     return fetchList(MOVIE_URL + tmdbId + "/recommendations", "TMDB recommendations fetch failed");
   }
