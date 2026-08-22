@@ -21,6 +21,7 @@ import { GroupedEpisodeList, type SeasonRowData } from "../components/detail/Epi
 import { FileStatusCard } from "../components/detail/FileStatusCard";
 import { MoreActionsMenu } from "../components/detail/MoreActionsMenu";
 import { QualityProfileDropdown } from "../components/detail/QualityProfileDropdown";
+import { SeriesMonitoringDropdown } from "../components/detail/SeriesMonitoringDropdown";
 import { Toggle } from "../components/Toggle";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
@@ -42,6 +43,7 @@ function seasonsFromPreview(seasons: PreviewSeason[]): Season[] {
       airDate: e.airDate,
       runtimeMinutes: null,
       stillPath: null,
+      monitored: true,
       status: "MISSING" as EpisodeStatus,
     })),
   }));
@@ -64,6 +66,7 @@ function animeSeasonsFromPreview(seasons: PreviewSeason[]): AnimeSeason[] {
       airDate: e.airDate,
       runtimeMinutes: null,
       stillPath: null,
+      monitored: true,
       status: "MISSING" as EpisodeStatus,
     })),
   }));
@@ -92,6 +95,8 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     setQualityProfile,
     setMinimumAvailability,
     setSeasonFolderEnabled,
+    setEpisodeMonitored,
+    setSeriesMonitoring,
   } = useMediaDetail(kind);
   const { admin, stateFor, triggerAdd } = useAddToLibrary();
   const navigate = useNavigate();
@@ -138,6 +143,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     const seasons = owned && ownedMedia ? (ownedMedia as ShowDetail).seasons : seasonsFromPreview(preview?.seasons ?? []);
     groupedSeasons = seasons.map((s) => ({
       id: s.id,
+      seasonNumber: s.seasonNumber,
       name: s.name,
       episodeCount: s.episodeCount,
       episodes: s.episodes.map((e) => ({
@@ -145,6 +151,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
         number: e.episodeNumber,
         title: e.title,
         airDate: e.airDate,
+        monitored: owned ? e.monitored : true,
         status: e.status,
         searchHref: owned ? `/episodes/${e.id}/search` : null,
       })),
@@ -153,6 +160,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     const seasons = owned && ownedMedia ? (ownedMedia as AnimeDetail).seasons : animeSeasonsFromPreview(preview?.seasons ?? []);
     groupedSeasons = seasons.map((s) => ({
       id: s.id,
+      seasonNumber: s.seasonNumber,
       name: s.name,
       episodeCount: s.episodeCount,
       episodes: s.episodes.map((e) => ({
@@ -161,6 +169,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
         absoluteNumber: e.absoluteEpisodeNumber,
         title: e.title,
         airDate: e.airDate,
+        monitored: owned ? e.monitored : true,
         status: e.status,
         searchHref: owned ? `/anime-episodes/${e.id}/search` : null,
       })),
@@ -348,6 +357,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                 <>
                   <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
+                    <SeriesMonitoringDropdown onSelect={(mode) => setSeriesMonitoring(mode)} />
                     {admin && (
                       <MoreActionsMenu
                         actions={[
@@ -454,7 +464,11 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
             <div className="section-label" style={{ marginBottom: 12 }}>
               Seasons
             </div>
-            <GroupedEpisodeList seasons={groupedSeasons} />
+            <GroupedEpisodeList
+              seasons={groupedSeasons}
+              onToggleEpisodeMonitored={owned ? (episodeId, next) => setEpisodeMonitored(episodeId, next) : undefined}
+              onToggleSeasonMonitored={owned ? (seasonNumber, next) => setSeriesMonitoring(next ? "ALL" : "NONE", seasonNumber) : undefined}
+            />
           </div>
         )}
 

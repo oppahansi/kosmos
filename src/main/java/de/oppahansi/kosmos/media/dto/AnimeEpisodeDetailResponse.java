@@ -18,6 +18,7 @@ public record AnimeEpisodeDetailResponse(
     UUID animeId,
     String animeTitle,
     UUID qualityProfileId,
+    boolean monitored,
     String status) {
 
   public static AnimeEpisodeDetailResponse from(AnimeEpisode episode, String status) {
@@ -30,6 +31,7 @@ public record AnimeEpisodeDetailResponse(
         episode.season.anime.mediaItemId,
         episode.season.anime.mediaItem.title,
         episode.season.anime.qualityProfile == null ? null : episode.season.anime.qualityProfile.id,
+        episode.monitored,
         status);
   }
 }

@@ -72,7 +72,8 @@ public class TvAutomaticSearchJob implements JobHandler {
   }
 
   private List<UUID> findEligibleEpisodeIds() {
-    return Episode.<Episode>list("season.show.qualityProfile is not null").stream()
+    return Episode.<Episode>list("season.show.qualityProfile is not null and monitored = true")
+        .stream()
         .map(episode -> episode.mediaItemId)
         .filter(mediaItemId -> !Grab.hasActiveGrab(mediaItemId))
         .toList();
@@ -80,7 +81,7 @@ public class TvAutomaticSearchJob implements JobHandler {
 
   private void searchAndGrab(UUID episodeMediaItemId) {
     Episode episode = Episode.<Episode>findById(episodeMediaItemId);
-    if (episode == null || episode.season.show.qualityProfile == null) {
+    if (episode == null || episode.season.show.qualityProfile == null || !episode.monitored) {
       return;
     }
     Show show = episode.season.show;

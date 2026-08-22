@@ -7,6 +7,7 @@ import de.oppahansi.kosmos.media.dto.ShowDetailResponse;
 import de.oppahansi.kosmos.media.dto.ShowResponse;
 import de.oppahansi.kosmos.media.dto.UpdateMovieQualityProfileRequest;
 import de.oppahansi.kosmos.media.dto.UpdateSeasonFolderRequest;
+import de.oppahansi.kosmos.media.dto.UpdateSeriesMonitoringRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -92,6 +93,22 @@ public class ShowResource {
         .updateSeasonFolderEnabled(id, request.seasonFolderEnabled())
         .map(show -> Response.ok(toDetail(show)).build())
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
+  /** Series Monitoring presets — see {@code ShowService#updateMonitoring}'s own doc. */
+  @PUT
+  @Path("/{id}/monitoring")
+  public Response updateMonitoring(
+      @PathParam("id") UUID id, UpdateSeriesMonitoringRequest request) {
+    if (!currentUser.isAdmin()) {
+      throw new ForbiddenException("Admin only");
+    }
+    return showService.updateMonitoring(id, request.mode(), request.seasonNumber())
+        ? showService
+            .findById(id)
+            .map(show -> Response.ok(toDetail(show)).build())
+            .orElse(Response.status(Response.Status.NOT_FOUND).build())
+        : Response.status(Response.Status.NOT_FOUND).build();
   }
 
   /**

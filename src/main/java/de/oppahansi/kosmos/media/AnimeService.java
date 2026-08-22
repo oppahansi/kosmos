@@ -21,6 +21,8 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -281,6 +283,63 @@ public class AnimeService {
               anime.qualityProfile = qualityProfileService.resolveOrThrow(qualityProfileId);
               return anime;
             });
+  }
+
+  /** Same idea as {@code ShowService#updateMonitoring} — see its own doc. */
+  @Transactional
+  public boolean updateMonitoring(UUID animeId, String mode, Integer seasonNumber) {
+    if (Anime.count("mediaItemId", animeId) == 0) {
+      return false;
+    }
+    String seasonFilter = seasonNumber != null ? " and season.seasonNumber = ?2" : "";
+    Object[] baseParams =
+        seasonNumber != null ? new Object[] {animeId, seasonNumber} : new Object[] {animeId};
+    switch (mode) {
+      case "ALL" ->
+          AnimeEpisode.update(
+              "monitored = true where season.anime.mediaItemId = ?1" + seasonFilter, baseParams);
+      case "NONE" ->
+          AnimeEpisode.update(
+              "monitored = false where season.anime.mediaItemId = ?1" + seasonFilter, baseParams);
+      case "FUTURE" -> {
+        LocalDate today = LocalDate.now();
+        AnimeEpisode.update(
+            "monitored = true where season.anime.mediaItemId = ?1"
+                + seasonFilter
+                + " and (airDate is null or airDate >= ?"
+                + (baseParams.length + 1)
+                + ")",
+            append(baseParams, today));
+        AnimeEpisode.update(
+            "monitored = false where season.anime.mediaItemId = ?1"
+                + seasonFilter
+                + " and airDate is not null and airDate < ?"
+                + (baseParams.length + 1),
+            append(baseParams, today));
+      }
+      case "MISSING" -> {
+        AnimeEpisode.update(
+            "monitored = true where season.anime.mediaItemId = ?1"
+                + seasonFilter
+                + " and mediaItemId not in (select f.mediaItem.id from LibraryFile f where"
+                + " f.mediaItem is not null)",
+            baseParams);
+        AnimeEpisode.update(
+            "monitored = false where season.anime.mediaItemId = ?1"
+                + seasonFilter
+                + " and mediaItemId in (select f.mediaItem.id from LibraryFile f where"
+                + " f.mediaItem is not null)",
+            baseParams);
+      }
+      default -> throw new BadRequestException("Unknown monitoring mode: " + mode);
+    }
+    return true;
+  }
+
+  private Object[] append(Object[] params, Object extra) {
+    Object[] result = Arrays.copyOf(params, params.length + 1);
+    result[params.length] = extra;
+    return result;
   }
 
   /** Genres/similar for the detail page — see {@link AniListMetadataProvider#fetchDetailExtras}. */

@@ -14,7 +14,10 @@ import de.oppahansi.kosmos.parsing.QualityProfileService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.BadRequestException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -145,6 +148,69 @@ public class ShowService {
               show.seasonFolderEnabled = seasonFolderEnabled;
               return show;
             });
+  }
+
+  /**
+   * Bulk-sets {@link Episode#monitored} across the whole show (or one season of it, when {@code
+   * seasonNumber} is given) — Sonarr's own "Series Monitoring" presets. {@code ALL}/{@code NONE}
+   * are unconditional; {@code FUTURE} monitors only episodes with no air date yet or one still
+   * ahead; {@code MISSING} monitors only episodes with no {@link
+   * de.oppahansi.kosmos.library.LibraryFile} yet, unmonitoring ones already owned.
+   */
+  @Transactional
+  public boolean updateMonitoring(UUID showId, String mode, Integer seasonNumber) {
+    if (Show.count("mediaItemId", showId) == 0) {
+      return false;
+    }
+    String seasonFilter = seasonNumber != null ? " and season.seasonNumber = ?2" : "";
+    Object[] baseParams =
+        seasonNumber != null ? new Object[] {showId, seasonNumber} : new Object[] {showId};
+    switch (mode) {
+      case "ALL" ->
+          Episode.update(
+              "monitored = true where season.show.mediaItemId = ?1" + seasonFilter, baseParams);
+      case "NONE" ->
+          Episode.update(
+              "monitored = false where season.show.mediaItemId = ?1" + seasonFilter, baseParams);
+      case "FUTURE" -> {
+        LocalDate today = LocalDate.now();
+        Episode.update(
+            "monitored = true where season.show.mediaItemId = ?1"
+                + seasonFilter
+                + " and (airDate is null or airDate >= ?"
+                + (baseParams.length + 1)
+                + ")",
+            append(baseParams, today));
+        Episode.update(
+            "monitored = false where season.show.mediaItemId = ?1"
+                + seasonFilter
+                + " and airDate is not null and airDate < ?"
+                + (baseParams.length + 1),
+            append(baseParams, today));
+      }
+      case "MISSING" -> {
+        Episode.update(
+            "monitored = true where season.show.mediaItemId = ?1"
+                + seasonFilter
+                + " and mediaItemId not in (select f.mediaItem.id from LibraryFile f where"
+                + " f.mediaItem is not null)",
+            baseParams);
+        Episode.update(
+            "monitored = false where season.show.mediaItemId = ?1"
+                + seasonFilter
+                + " and mediaItemId in (select f.mediaItem.id from LibraryFile f where"
+                + " f.mediaItem is not null)",
+            baseParams);
+      }
+      default -> throw new BadRequestException("Unknown monitoring mode: " + mode);
+    }
+    return true;
+  }
+
+  private Object[] append(Object[] params, Object extra) {
+    Object[] result = Arrays.copyOf(params, params.length + 1);
+    result[params.length] = extra;
+    return result;
   }
 
   /**

@@ -51,6 +51,7 @@ import type {
   RegistryEntry,
   ScheduledJob,
   ScoredSearchResult,
+  SeriesMonitoringMode,
   SetupStatus,
   Show,
   ShowDetail,
@@ -279,6 +280,12 @@ export const api = {
       body: JSON.stringify({ seasonFolderEnabled }),
     }),
 
+  updateShowMonitoring: (id: string, mode: SeriesMonitoringMode, seasonNumber?: number) =>
+    request<ShowDetail>(`/shows/${id}/monitoring`, {
+      method: "PUT",
+      body: JSON.stringify({ mode, seasonNumber: seasonNumber ?? null }),
+    }),
+
   deleteShow: (id: string, deleteFiles: boolean) =>
     request<void>(`/shows/${id}?deleteFiles=${deleteFiles}`, { method: "DELETE" }),
 
@@ -296,7 +303,19 @@ export const api = {
 
   getEpisode: (id: string) => request<EpisodeDetail>(`/episodes/${id}`),
 
+  updateEpisodeMonitored: (id: string, monitored: boolean) =>
+    request<EpisodeDetail>(`/episodes/${id}/monitored`, {
+      method: "PUT",
+      body: JSON.stringify({ monitored }),
+    }),
+
   getAnimeEpisode: (id: string) => request<AnimeEpisodeDetail>(`/anime-episodes/${id}`),
+
+  updateAnimeEpisodeMonitored: (id: string, monitored: boolean) =>
+    request<AnimeEpisodeDetail>(`/anime-episodes/${id}/monitored`, {
+      method: "PUT",
+      body: JSON.stringify({ monitored }),
+    }),
 
   listAnime: () => request<Anime[]>("/anime"),
 
@@ -310,6 +329,12 @@ export const api = {
     request<AnimeDetail>(`/anime/${id}/quality-profile`, {
       method: "PUT",
       body: JSON.stringify({ qualityProfileId }),
+    }),
+
+  updateAnimeMonitoring: (id: string, mode: SeriesMonitoringMode, seasonNumber?: number) =>
+    request<AnimeDetail>(`/anime/${id}/monitoring`, {
+      method: "PUT",
+      body: JSON.stringify({ mode, seasonNumber: seasonNumber ?? null }),
     }),
 
   deleteAnime: (id: string, deleteFiles: boolean) =>

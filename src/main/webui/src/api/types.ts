@@ -30,6 +30,8 @@ export interface Show {
 
 export type EpisodeStatus = "MISSING" | "GRABBED" | "FAILED" | "IMPORTED" | "AVAILABLE";
 
+export type SeriesMonitoringMode = "ALL" | "NONE" | "FUTURE" | "MISSING";
+
 export interface Episode {
   id: string;
   episodeNumber: number;
@@ -38,6 +40,7 @@ export interface Episode {
   airDate: string | null;
   runtimeMinutes: number | null;
   stillPath: string | null;
+  monitored: boolean;
   status: EpisodeStatus;
 }
 
@@ -92,6 +95,7 @@ export interface AnimeEpisode {
   airDate: string | null;
   runtimeMinutes: number | null;
   stillPath: string | null;
+  monitored: boolean;
   status: EpisodeStatus;
 }
 

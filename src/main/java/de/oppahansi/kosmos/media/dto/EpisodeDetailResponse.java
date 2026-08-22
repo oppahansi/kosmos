@@ -17,6 +17,7 @@ public record EpisodeDetailResponse(
     String showTitle,
     int seasonNumber,
     UUID qualityProfileId,
+    boolean monitored,
     String status) {
 
   public static EpisodeDetailResponse from(Episode episode, String status) {
@@ -29,6 +30,7 @@ public record EpisodeDetailResponse(
         episode.season.show.mediaItem.title,
         episode.season.seasonNumber,
         episode.season.show.qualityProfile == null ? null : episode.season.show.qualityProfile.id,
+        episode.monitored,
         status);
   }
 }

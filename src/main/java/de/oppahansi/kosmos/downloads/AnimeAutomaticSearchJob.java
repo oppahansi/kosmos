@@ -75,7 +75,9 @@ public class AnimeAutomaticSearchJob implements JobHandler {
   }
 
   private List<UUID> findEligibleEpisodeIds() {
-    return AnimeEpisode.<AnimeEpisode>list("season.anime.qualityProfile is not null").stream()
+    return AnimeEpisode.<AnimeEpisode>list(
+            "season.anime.qualityProfile is not null and monitored = true")
+        .stream()
         .map(episode -> episode.mediaItemId)
         .filter(mediaItemId -> !Grab.hasActiveGrab(mediaItemId))
         .toList();
@@ -85,6 +87,7 @@ public class AnimeAutomaticSearchJob implements JobHandler {
     AnimeEpisode episode = AnimeEpisode.<AnimeEpisode>findById(episodeMediaItemId);
     if (episode == null
         || episode.season.anime.qualityProfile == null
+        || !episode.monitored
         || episode.absoluteEpisodeNumber == null) {
       return;
     }

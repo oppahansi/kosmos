@@ -65,6 +65,10 @@ public class AnimeEpisode extends PanacheEntityBase {
   @Column(name = "still_path", length = 500)
   public String stillPath;
 
+  /** Same idea as {@link Episode#monitored} — independent of the anime's own quality profile. */
+  @Column(nullable = false)
+  public boolean monitored = true;
+
   /** Convenience accessor — the anime's quality profile governs what to search for this episode. */
   public QualityProfile qualityProfile() {
     return season.anime.qualityProfile;

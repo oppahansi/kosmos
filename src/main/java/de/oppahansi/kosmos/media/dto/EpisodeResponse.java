@@ -13,6 +13,7 @@ public record EpisodeResponse(
     LocalDate airDate,
     Integer runtimeMinutes,
     String stillPath,
+    boolean monitored,
     String status) {
 
   public static EpisodeResponse from(Episode episode, String status) {
@@ -24,6 +25,7 @@ public record EpisodeResponse(
         episode.airDate,
         episode.runtimeMinutes,
         episode.stillPath,
+        episode.monitored,
         status);
   }
 }

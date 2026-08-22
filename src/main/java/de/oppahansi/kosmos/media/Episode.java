@@ -20,8 +20,10 @@ import org.hibernate.type.SqlTypes;
  * as {@link Movie}/{@link Show}. This is what makes an episode individually gradable/searchable:
  * {@code Release}/{@code Grab}/{@code LibraryFile} already FK to {@code media_item_id} generically,
  * so per-episode grab/import tracking needed no schema change to any of them once this landed.
- * {@code qualityProfile} isn't duplicated here — the show it belongs to already carries one, the
- * same "whole series, not per-episode" granularity Sonarr uses.
+ * {@code qualityProfile} isn't duplicated here — the show it belongs to already carries one, that
+ * part stays whole-series granularity. {@code monitored} is per-episode, though (see the field's
+ * own doc) — an unmonitored episode in an otherwise-monitored show is a real, common state (already
+ * have it from elsewhere, don't care about a special/OVA, etc.), same as Sonarr's own model.
  */
 @Entity
 @Table(name = "episode")
@@ -54,6 +56,14 @@ public class Episode extends PanacheEntityBase {
 
   @Column(name = "still_path", length = 500)
   public String stillPath;
+
+  /**
+   * Independent of the show's quality profile — automatic search skips an unmonitored episode of an
+   * otherwise-monitored show. Defaults true so every episode a show already had before this field
+   * existed keeps behaving exactly as before.
+   */
+  @Column(nullable = false)
+  public boolean monitored = true;
 
   /** Convenience accessor — the show's quality profile governs what to search for this episode. */
   public QualityProfile qualityProfile() {

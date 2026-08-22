@@ -3,7 +3,11 @@ package de.oppahansi.kosmos.media;
 import de.oppahansi.kosmos.downloads.Grab;
 import de.oppahansi.kosmos.library.LibraryFile;
 import de.oppahansi.kosmos.media.dto.EpisodeDetailResponse;
+import de.oppahansi.kosmos.media.dto.UpdateMonitoredRequest;
+import jakarta.transaction.Transactional;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -21,6 +25,20 @@ public class EpisodeResource {
   public Response get(@PathParam("id") UUID id) {
     return Episode.<Episode>findByIdOptional(id)
         .map(episode -> Response.ok(EpisodeDetailResponse.from(episode, statusFor(id))).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
+  @PUT
+  @Path("/{id}/monitored")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Transactional
+  public Response updateMonitored(@PathParam("id") UUID id, UpdateMonitoredRequest request) {
+    return Episode.<Episode>findByIdOptional(id)
+        .map(
+            episode -> {
+              episode.monitored = request.monitored();
+              return Response.ok(EpisodeDetailResponse.from(episode, statusFor(id))).build();
+            })
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 

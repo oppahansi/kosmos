@@ -1,7 +1,17 @@
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useApi } from "./useApi";
-import type { Anime, AnimeDetail, MediaDetailExtras, MediaPreview, MinimumAvailability, Movie, Show, ShowDetail } from "../api/types";
+import type {
+  Anime,
+  AnimeDetail,
+  MediaDetailExtras,
+  MediaPreview,
+  MinimumAvailability,
+  Movie,
+  SeriesMonitoringMode,
+  Show,
+  ShowDetail,
+} from "../api/types";
 
 export type MediaKind = "movie" | "show" | "anime";
 
@@ -54,6 +64,23 @@ function saveQualityProfile(kind: MediaKind, id: string, qualityProfileId: strin
   return api.updateAnimeQualityProfile(id, qualityProfileId);
 }
 
+function saveEpisodeMonitored(kind: MediaKind, episodeId: string, monitored: boolean): Promise<unknown> {
+  return kind === "anime"
+    ? api.updateAnimeEpisodeMonitored(episodeId, monitored)
+    : api.updateEpisodeMonitored(episodeId, monitored);
+}
+
+function saveSeriesMonitoring(
+  kind: MediaKind,
+  id: string,
+  mode: SeriesMonitoringMode,
+  seasonNumber?: number,
+): Promise<unknown> {
+  return kind === "anime"
+    ? api.updateAnimeMonitoring(id, mode, seasonNumber)
+    : api.updateShowMonitoring(id, mode, seasonNumber);
+}
+
 /**
  * All the data a media detail page needs, for whichever of the three real content types the route
  * is for — one owned/preview/extras fetch dispatch instead of three near-identical page components.
@@ -99,6 +126,18 @@ export function useMediaDetail(kind: MediaKind) {
     reload();
   }
 
+  async function setEpisodeMonitored(episodeId: string, monitored: boolean) {
+    if (kind === "movie") return;
+    await saveEpisodeMonitored(kind, episodeId, monitored);
+    reload();
+  }
+
+  async function setSeriesMonitoring(mode: SeriesMonitoringMode, seasonNumber?: number) {
+    if (!id || kind === "movie") return;
+    await saveSeriesMonitoring(kind, id, mode, seasonNumber);
+    reload();
+  }
+
   return {
     owned,
     ownedMedia,
@@ -113,5 +152,7 @@ export function useMediaDetail(kind: MediaKind) {
     setQualityProfile,
     setMinimumAvailability,
     setSeasonFolderEnabled,
+    setEpisodeMonitored,
+    setSeriesMonitoring,
   };
 }

@@ -175,7 +175,10 @@ CREATE TABLE episode (
     overview          VARCHAR(4000),
     air_date          DATE,
     runtime_minutes   INTEGER,
-    still_path        VARCHAR(500)
+    still_path        VARCHAR(500),
+    -- Independent of the show-level quality profile: a monitored show with one individually
+    -- unmonitored episode skips only that episode in automatic search. See Episode's own doc.
+    monitored         BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 CREATE TABLE release (
@@ -399,7 +402,8 @@ CREATE TABLE anime_episode (
     overview                VARCHAR(4000),
     air_date                DATE,
     runtime_minutes         INTEGER,
-    still_path              VARCHAR(500)
+    still_path              VARCHAR(500),
+    monitored               BOOLEAN NOT NULL DEFAULT TRUE
 );
 
 -- A Jellyfin "tvshows" item JellyfinSyncService couldn't confidently route to show or anime: some

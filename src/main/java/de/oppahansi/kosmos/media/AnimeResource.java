@@ -6,6 +6,7 @@ import de.oppahansi.kosmos.media.dto.AnimeResponse;
 import de.oppahansi.kosmos.media.dto.AnimeSeasonResponse;
 import de.oppahansi.kosmos.media.dto.CreateAnimeRequest;
 import de.oppahansi.kosmos.media.dto.UpdateMovieQualityProfileRequest;
+import de.oppahansi.kosmos.media.dto.UpdateSeriesMonitoringRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
@@ -79,6 +80,22 @@ public class AnimeResource {
         .updateQualityProfile(id, request.qualityProfileId())
         .map(anime -> Response.ok(toDetail(anime)).build())
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
+  /** Series Monitoring presets — see {@code ShowService#updateMonitoring}'s own doc. */
+  @PUT
+  @Path("/{id}/monitoring")
+  public Response updateMonitoring(
+      @PathParam("id") UUID id, UpdateSeriesMonitoringRequest request) {
+    if (!currentUser.isAdmin()) {
+      throw new ForbiddenException("Admin only");
+    }
+    return animeService.updateMonitoring(id, request.mode(), request.seasonNumber())
+        ? animeService
+            .findById(id)
+            .map(anime -> Response.ok(toDetail(anime)).build())
+            .orElse(Response.status(Response.Status.NOT_FOUND).build())
+        : Response.status(Response.Status.NOT_FOUND).build();
   }
 
   /**
