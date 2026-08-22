@@ -45,12 +45,14 @@ import type {
   PluginManifest,
   QualityDefinition,
   QualityProfile,
+  RadarrServer,
   RegistryEntry,
   ScheduledJob,
   ScoredSearchResult,
   SetupStatus,
   Show,
   ShowDetail,
+  SonarrServer,
   StudioTile,
   TestDownloadClientResult,
   TestIndexerResult,
@@ -567,6 +569,38 @@ export const api = {
 
   autoRegisterRootFoldersFromJellyfin: (id: string) =>
     request<{ registered: number; skipped: number }>(`/jellyfin-servers/${id}/root-folders`, { method: "POST" }),
+
+  listRadarrServers: () => request<RadarrServer[]>("/radarr-servers"),
+
+  createRadarrServer: (body: { name: string; baseUrl: string; apiKey: string }) =>
+    request<RadarrServer>("/radarr-servers", { method: "POST", body: JSON.stringify(body) }),
+
+  testRadarrConnection: (body: { baseUrl: string; apiKey: string }) =>
+    request<{ ok: boolean; message: string }>("/radarr-servers/test-connection", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  syncRadarrLibrary: (id: string) => request<JobRun>(`/radarr-servers/${id}/sync-library`, { method: "POST" }),
+
+  autoRegisterRootFoldersFromRadarr: (id: string) =>
+    request<{ registered: number; skipped: number }>(`/radarr-servers/${id}/root-folders`, { method: "POST" }),
+
+  listSonarrServers: () => request<SonarrServer[]>("/sonarr-servers"),
+
+  createSonarrServer: (body: { name: string; baseUrl: string; apiKey: string }) =>
+    request<SonarrServer>("/sonarr-servers", { method: "POST", body: JSON.stringify(body) }),
+
+  testSonarrConnection: (body: { baseUrl: string; apiKey: string }) =>
+    request<{ ok: boolean; message: string }>("/sonarr-servers/test-connection", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  syncSonarrLibrary: (id: string) => request<JobRun>(`/sonarr-servers/${id}/sync-library`, { method: "POST" }),
+
+  autoRegisterRootFoldersFromSonarr: (id: string) =>
+    request<{ registered: number; skipped: number }>(`/sonarr-servers/${id}/root-folders`, { method: "POST" }),
 
   listUnclassifiedShows: () => request<UnclassifiedShow[]>("/unclassified-shows"),
 

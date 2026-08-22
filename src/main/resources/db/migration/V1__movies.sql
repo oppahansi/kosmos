@@ -282,6 +282,26 @@ CREATE TABLE jellyfin_server (
     created_at            TIMESTAMP NOT NULL
 );
 
+-- A configured Radarr server to import an already-managed movie library from.
+CREATE TABLE radarr_server (
+    id                VARCHAR(36) PRIMARY KEY,
+    name              VARCHAR(200) NOT NULL,
+    base_url          VARCHAR(1000) NOT NULL,
+    api_key           VARCHAR(200) NOT NULL,
+    enabled           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at        TIMESTAMP NOT NULL
+);
+
+-- A configured Sonarr server to import an already-managed series library from.
+CREATE TABLE sonarr_server (
+    id                VARCHAR(36) PRIMARY KEY,
+    name              VARCHAR(200) NOT NULL,
+    base_url          VARCHAR(1000) NOT NULL,
+    api_key           VARCHAR(200) NOT NULL,
+    enabled           BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at        TIMESTAMP NOT NULL
+);
+
 -- Either a native account (password_hash set, jellyfin_* null) or a Jellyfin-linked account
 -- (jellyfin_server_id + jellyfin_user_id set, password_hash null — login always proxies to
 -- that Jellyfin server, and role is kept in sync with its own Policy.IsAdministrator flag).

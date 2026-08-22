@@ -33,9 +33,11 @@ import NotificationsPage from "./pages/settings/NotificationsPage";
 import PermissionsPage from "./pages/settings/PermissionsPage";
 import PluginsPage from "./pages/settings/PluginsPage";
 import QualityPage from "./pages/settings/QualityPage";
+import RadarrPage from "./pages/settings/RadarrPage";
 import RootFoldersPage from "./pages/settings/RootFoldersPage";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import SizeLimitsPage from "./pages/settings/SizeLimitsPage";
+import SonarrPage from "./pages/settings/SonarrPage";
 import UsersPage from "./pages/settings/UsersPage";
 
 function App() {
@@ -91,6 +93,8 @@ function App() {
               <Route path="health" element={<HealthPage />} />
               <Route path="backup" element={<BackupPage />} />
               <Route path="jellyfin" element={<JellyfinPage />} />
+              <Route path="radarr" element={<RadarrPage />} />
+              <Route path="sonarr" element={<SonarrPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="permissions" element={<PermissionsPage />} />
             </Route>

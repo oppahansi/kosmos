@@ -488,7 +488,7 @@ public class JellyfinSyncService {
   private MediaItem createShow(JellyfinShow jellyfinShow) {
     LibraryRootFolder rootFolder = resolveRootFolder(jellyfinShow.path(), "show").orElse(null);
     Show show =
-        showService.createFromJellyfin(
+        showService.createFromExternalSource(
             jellyfinShow.name(), jellyfinShow.year(), jellyfinShow.tmdbId(), rootFolder);
     return show.mediaItem;
   }

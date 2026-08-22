@@ -38,6 +38,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
   private static final String TV_URL = "https://api.themoviedb.org/3/tv/";
   private static final String AUTH_URL = "https://api.themoviedb.org/3/authentication";
   private static final String COLLECTION_URL = "https://api.themoviedb.org/3/collection/";
+  private static final String FIND_URL = "https://api.themoviedb.org/3/find/";
 
   @ConfigProperty(name = "kosmos.metadata.tmdb.api-key")
   Optional<String> apiKey;
@@ -261,6 +262,43 @@ public class TmdbMetadataProvider implements MetadataProvider {
       }
       return Optional.of(
           TmdbMappers.toSearchResult(objectMapper.readValue(response.body(), TmdbTvShow.class)));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Resolves a TheTVDB series id to its TMDB TV id, via TMDB's own {@code /find} endpoint — {@code
+   * SonarrSyncService}'s fallback for the small fraction of series Sonarr doesn't already report a
+   * native {@code tmdbId} for (Sonarr's series resource carries one directly for most titles; this
+   * covers the rest without requiring a whole separate id-mapping dataset).
+   */
+  @CacheResult(cacheName = "tmdb-find-by-tvdb")
+  public Optional<String> findTvIdByTvdbId(String tvdbId) {
+    if (apiKey.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(
+                  URI.create(
+                      FIND_URL
+                          + tvdbId
+                          + "?api_key="
+                          + apiKey.orElseThrow()
+                          + "&external_source=tvdb_id"))
+              .GET()
+              .build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200) {
+        return Optional.empty();
+      }
+      JsonNode tvResults = objectMapper.readTree(response.body()).path("tv_results");
+      return tvResults.isEmpty()
+          ? Optional.empty()
+          : Optional.of(tvResults.get(0).path("id").asText());
     } catch (Exception e) {
       return Optional.empty();
     }

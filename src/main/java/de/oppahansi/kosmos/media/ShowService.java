@@ -85,15 +85,15 @@ public class ShowService {
   }
 
   /**
-   * Used by {@code JellyfinSyncService} — same TMDB-driven season/episode structure as {@link
-   * #create}, but from a server-reported title/year/root-folder rather than a user-submitted
-   * request, and with no quality profile assigned (matches Jellyfin-synced movies, which are also
-   * unmonitored until the user assigns one). Poster/backdrop/overview are a best-effort extra fetch
-   * (Jellyfin's own ProviderIds don't carry them) — unlike the season/episode tree, a failed lookup
-   * here doesn't block creation.
+   * Used by {@code JellyfinSyncService} and {@code SonarrSyncService} — same TMDB-driven
+   * season/episode structure as {@link #create}, but from a server-reported title/year/root-folder
+   * rather than a user-submitted request, and with no quality profile assigned (matches
+   * server-synced movies, which are also unmonitored until the user assigns one).
+   * Poster/backdrop/overview are a best-effort extra fetch (neither source's own reported ids carry
+   * them) — unlike the season/episode tree, a failed lookup here doesn't block creation.
    */
   @Transactional
-  public Show createFromJellyfin(
+  public Show createFromExternalSource(
       String title, Integer year, String tmdbId, LibraryRootFolder rootFolder) {
     TmdbShowStructure structure = tmdbMetadataProvider.fetchShowStructure(tmdbId);
 
@@ -201,7 +201,7 @@ public class ShowService {
   }
 
   /**
-   * Same season/episode tree {@link #createFromJellyfin} persists, reused read-only for the
+   * Same season/episode tree {@link #createFromExternalSource} persists, reused read-only for the
    * not-owned preview screen so it can render the identical Seasons section an owned show's detail
    * page does. Unlike creation, a fetch failure here is best-effort — like the rest of {@link
    * #preview}, a missing/failed season tree just means an empty Seasons section, not a broken

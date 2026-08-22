@@ -499,6 +499,24 @@ export interface JellyfinServer {
   selectedUserIds: string[];
 }
 
+export interface RadarrServer {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKeySet: boolean;
+  enabled: boolean;
+  createdAt: string;
+}
+
+export interface SonarrServer {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKeySet: boolean;
+  enabled: boolean;
+  createdAt: string;
+}
+
 export interface JellyfinLibrary {
   id: string;
   name: string;

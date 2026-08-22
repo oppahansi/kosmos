@@ -14,6 +14,8 @@ const TABS = [
   { to: "/settings/health", label: "Health" },
   { to: "/settings/backup", label: "Backup" },
   { to: "/settings/jellyfin", label: "Jellyfin" },
+  { to: "/settings/radarr", label: "Radarr" },
+  { to: "/settings/sonarr", label: "Sonarr" },
   { to: "/settings/users", label: "Users" },
   { to: "/settings/permissions", label: "Permissions" },
 ];
